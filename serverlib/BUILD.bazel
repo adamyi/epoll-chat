@@ -1,0 +1,7 @@
+cc_library(
+  name = "serverlib",
+  srcs = glob(["**/*.c"]),
+  hdrs = glob(["**/*.h"]),
+  deps = ["//achelper"],
+  visibility = ["//:__subpackages__"],
+)
