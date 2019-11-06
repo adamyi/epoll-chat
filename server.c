@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <poll.h>
@@ -81,14 +83,24 @@ int main(int argc, char *argv[]) {
         }
         make_socket_nonblocking(newsockfd);
         clients[nclients++] = im_connection_accept(epollfd, newsockfd);
-      } else if (events[i].events & EPOLLIN) {
-        for (int i = 0; i < nclients; i++) {
-          if (clients[i]->fd == events[i].data.fd) {
-            im_receive_command(db, clients[i], events + i);
-            break;
+      } else {
+        if (events[i].events & EPOLLIN) {
+          for (int i = 0; i < nclients; i++) {
+            if (clients[i]->fd == events[i].data.fd) {
+              im_receive_command(epollfd, db, clients[i], events + i);
+              break;
+            }
           }
         }
-      } else if (events[i].events & EPOLLOUT) {
+        if (events[i].events & EPOLLOUT) {
+          printf("epollout\n");
+          for (int i = 0; i < nclients; i++) {
+            if (clients[i]->fd == events[i].data.fd) {
+              im_send_buffer(epollfd, db, clients[i], events + i);
+              break;
+            }
+          }
+        }
       }
     }
   }

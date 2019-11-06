@@ -6,18 +6,19 @@
 #include "auth.h"
 
 #include "proto/IMRequest.pb.h"
+#include "proto/IMResponse.pb.h"
 
 #include "serverlib/commands/login.h"
 
 const im_command_t *enabled_commands[] = {&cmd_login, NULL};
 
-void parse_command(UserDb *db, struct im_client *client, uint8_t *cmd,
-                   size_t len) {
+int parse_command(UserDb *db, struct im_client *client, uint8_t *cmd,
+                  size_t len, struct IMResponse **rsp) {
   ac_protobuf_message_t *msg =
       ac_decode_protobuf_msg_with_n_fields(cmd, len, 2);
   if (msg == NULL) {
     ac_log(AC_LOG_ERROR, "protobuf decode failure: invalid protobuf");
-    return;
+    return 1;
   }
   struct IMRequest *imreq = parseIMRequestFromProtobufMsg(msg);
 
@@ -28,11 +29,8 @@ void parse_command(UserDb *db, struct im_client *client, uint8_t *cmd,
       ac_log(AC_LOG_DEBUG, "found implementation for request type %u",
              imreq->type);
       hasrun = true;
-      printf("test\n");
       void *request = (*cmd)->parser(imreq->value.value, imreq->value.len);
-      printf("test\n");
-      (*cmd)->run(db, client, request);
-      printf("test\n");
+      *rsp = (*cmd)->run(db, client, request);
       (*cmd)->freeer(request);
       break;
     }
@@ -41,4 +39,5 @@ void parse_command(UserDb *db, struct im_client *client, uint8_t *cmd,
     ac_log(AC_LOG_ERROR, "protobuf decode failure: request type %u unknown",
            imreq->type);
   freeIMRequest(imreq);
+  return 0;
 }

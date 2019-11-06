@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "achelper/ac_log.h"
 #include "achelper/ac_protobuf.h"
 
 #include "client.h"
@@ -19,6 +20,8 @@
 #include "auth.h"
 #include "command.h"
 #include "socket.h"
+
+#include "proto/IMResponse.pb.h"
 
 void make_socket_nonblocking(int sockfd) {
   int flags = fcntl(sockfd, F_GETFL, 0);
@@ -65,6 +68,10 @@ struct im_client *im_connection_accept(int epollfd, int sockfd) {
   struct im_client *client = malloc(sizeof(struct im_client));
   memset(client, 0, sizeof(struct im_client));
   client->fd = sockfd;
+  client->outbuffer = malloc(OUT_BUFFER_DEFAULT_SIZE);
+  client->buffer_capacity = OUT_BUFFER_DEFAULT_SIZE;
+  client->buffer_end = 0;
+  client->buffer_start = 0;
 
   struct epoll_event event;
   event.data.fd = sockfd;
@@ -75,11 +82,78 @@ struct im_client *im_connection_accept(int epollfd, int sockfd) {
   return client;
 }
 
-void send_protobuf(struct im_client *client, ac_protobuf_message_t *msg) {}
+void reset_buffer_start(struct im_client *client) {
+  if (client->buffer_start == 0) return;
+  memcpy(client->outbuffer, client->outbuffer + client->buffer_start,
+         client->buffer_end - client->buffer_start);
+  client->buffer_end -= client->buffer_start;
+  client->buffer_start = 0;
+}
 
-void im_receive_command(UserDb *db, struct im_client *client,
+void send_response(int epollfd, struct im_client *client,
+                   struct IMResponse *msg) {
+  ac_log(AC_LOG_INFO, "sending response");
+  size_t len;
+  uint8_t *bytes = encodeIMResponseToBytes(msg, &len);
+  if (client->buffer_end + len >= client->buffer_capacity) {
+    reset_buffer_start(client);
+    if (client->buffer_end + len >= client->buffer_capacity) {
+      while (client->buffer_end + len >= client->buffer_capacity) {
+        client->buffer_capacity <<= 1;
+      }
+      client->outbuffer = realloc(client->outbuffer, client->buffer_capacity);
+    }
+  }
+  memcpy(client->outbuffer + client->buffer_end, bytes, len);
+  client->buffer_end += len;
+  struct epoll_event event;
+  event.data.fd = client->fd;
+  event.events = EPOLLIN | EPOLLOUT;
+  if (epoll_ctl(epollfd, EPOLL_CTL_MOD, client->fd, &event) < 0) {
+    fprintf(stderr, "Couldn't listen on output events for socket: %s\n",
+            strerror(errno));
+  }
+}
+
+void im_receive_command(int epollfd, UserDb *db, struct im_client *client,
                         struct epoll_event *event) {
   uint8_t buf[MSG_LIMIT];
   size_t nbytes = recv(event->data.fd, buf, sizeof(buf), 0);
-  parse_command(db, client, buf, nbytes);
+  struct IMResponse *rsp;
+  int r = parse_command(db, client, buf, nbytes, &rsp);
+  if (r == 0) {
+    if (rsp != NULL) {
+      send_response(epollfd, client, rsp);
+    }
+  } else if (r == 1) {
+    // TODO: wait for further input
+  }
+}
+
+void im_send_buffer(int epollfd, UserDb *db, struct im_client *client,
+                    struct epoll_event *event) {
+  size_t len = client->buffer_end - client->buffer_start;
+  if (len > 0) {
+    ac_log(AC_LOG_INFO, "to send: %d bytes", len);
+    int nsent =
+        send(client->fd, client->outbuffer + client->buffer_start, len, 0);
+    ac_log(AC_LOG_INFO, "sent: %d bytes", nsent);
+    if (nsent == -1) {
+      fprintf(stderr, "error sending: %s\n", strerror(errno));
+      return;
+    }
+    client->buffer_start += nsent;
+    len -= nsent;
+  }
+  if (len == 0) {
+    struct epoll_event event;
+    event.data.fd = client->fd;
+    event.events = EPOLLIN;
+    if (epoll_ctl(epollfd, EPOLL_CTL_MOD, client->fd, &event) < 0) {
+      fprintf(stderr, "Couldn't listen on input events for socket: %s\n",
+              strerror(errno));
+    }
+  }
+  if ((client->buffer_start << 1) >= client->buffer_capacity)
+    reset_buffer_start(client);
 }

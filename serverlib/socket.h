@@ -13,6 +13,8 @@
 // do not sort
 #include "auth.h"
 
+#include "proto/IMResponse.pb.h"
+
 #define MSG_LIMIT 32768
 #define NAME_LIMIT 256
 
@@ -22,9 +24,13 @@ int listen_socket(int portnum);
 
 struct im_client *im_connection_accept(int epollfd, int sockfd);
 
-void im_receive_command(UserDb *db, struct im_client *client,
+void im_receive_command(int epollfd, UserDb *db, struct im_client *client,
                         struct epoll_event *event);
 
-void send_protobuf(struct im_client *client, ac_protobuf_message_t *msg);
+void im_send_buffer(int epollfd, UserDb *db, struct im_client *client,
+                    struct epoll_event *event);
+
+void send_response(int epollfd, struct im_client *client,
+                   struct IMResponse *msg);
 
 #endif

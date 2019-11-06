@@ -14,6 +14,8 @@ struct BlockRequest {
 
 struct BlockRequest *parseBlockRequestFromProtobufMsg(ac_protobuf_message_t *msg);
 struct BlockRequest *parseBlockRequestFromBytes(uint8_t *bytes, size_t len);
+ac_protobuf_message_t *encodeBlockRequestToProtobufMsg(struct BlockRequest *msg);
+uint8_t *encodeBlockRequestToBytes(struct BlockRequest *msg, size_t *len);
 void freeBlockRequest(struct BlockRequest *val);
 
 #endif

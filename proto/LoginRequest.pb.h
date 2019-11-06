@@ -15,6 +15,8 @@ struct LoginRequest {
 
 struct LoginRequest *parseLoginRequestFromProtobufMsg(ac_protobuf_message_t *msg);
 struct LoginRequest *parseLoginRequestFromBytes(uint8_t *bytes, size_t len);
+ac_protobuf_message_t *encodeLoginRequestToProtobufMsg(struct LoginRequest *msg);
+uint8_t *encodeLoginRequestToBytes(struct LoginRequest *msg, size_t *len);
 void freeLoginRequest(struct LoginRequest *val);
 
 #endif

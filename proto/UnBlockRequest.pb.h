@@ -14,6 +14,8 @@ struct UnBlockRequest {
 
 struct UnBlockRequest *parseUnBlockRequestFromProtobufMsg(ac_protobuf_message_t *msg);
 struct UnBlockRequest *parseUnBlockRequestFromBytes(uint8_t *bytes, size_t len);
+ac_protobuf_message_t *encodeUnBlockRequestToProtobufMsg(struct UnBlockRequest *msg);
+uint8_t *encodeUnBlockRequestToBytes(struct UnBlockRequest *msg, size_t *len);
 void freeUnBlockRequest(struct UnBlockRequest *val);
 
 #endif

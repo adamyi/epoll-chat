@@ -16,6 +16,8 @@ struct MessageRequest {
 
 struct MessageRequest *parseMessageRequestFromProtobufMsg(ac_protobuf_message_t *msg);
 struct MessageRequest *parseMessageRequestFromBytes(uint8_t *bytes, size_t len);
+ac_protobuf_message_t *encodeMessageRequestToProtobufMsg(struct MessageRequest *msg);
+uint8_t *encodeMessageRequestToBytes(struct MessageRequest *msg, size_t *len);
 void freeMessageRequest(struct MessageRequest *val);
 
 #endif

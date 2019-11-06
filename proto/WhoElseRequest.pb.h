@@ -16,6 +16,8 @@ struct WhoElseRequest {
 
 struct WhoElseRequest *parseWhoElseRequestFromProtobufMsg(ac_protobuf_message_t *msg);
 struct WhoElseRequest *parseWhoElseRequestFromBytes(uint8_t *bytes, size_t len);
+ac_protobuf_message_t *encodeWhoElseRequestToProtobufMsg(struct WhoElseRequest *msg);
+uint8_t *encodeWhoElseRequestToBytes(struct WhoElseRequest *msg, size_t *len);
 void freeWhoElseRequest(struct WhoElseRequest *val);
 
 #endif

@@ -15,6 +15,8 @@ struct IMResponse {
 
 struct IMResponse *parseIMResponseFromProtobufMsg(ac_protobuf_message_t *msg);
 struct IMResponse *parseIMResponseFromBytes(uint8_t *bytes, size_t len);
+ac_protobuf_message_t *encodeIMResponseToProtobufMsg(struct IMResponse *msg);
+uint8_t *encodeIMResponseToBytes(struct IMResponse *msg, size_t *len);
 void freeIMResponse(struct IMResponse *val);
 
 #endif
