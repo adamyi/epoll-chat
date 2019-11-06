@@ -12,8 +12,9 @@
 struct BlockRequest *parseBlockRequestFromProtobufMsg(ac_protobuf_message_t *msg) {
   struct BlockRequest *ret = malloc(sizeof(struct BlockRequest));
   ac_protobuf_field_t *username_f = ac_find_protobuf_field_in_msg(msg, 1);
-  ret->username.value = malloc(username_f->len);
+  ret->username.value = malloc(username_f->len + 1);
   memcpy(ret->username.value, username_f->value, username_f->len);
+  ret->username.value[username_f->len] = 0;
   ret->username.len = username_f->len;
   return ret;
 }

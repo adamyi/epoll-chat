@@ -41,7 +41,8 @@ UserDb *buildUserDb(FILE *fd, int block_duration, int login_timeout);
 
 user_t *findUser(UserDb *db, const char *username);
 
-int login(UserDb *db, const char *username, const char *password);
+int login(UserDb *db, const char *username, const char *password,
+          user_t **user);
 
 linked_user_t *loggedInUsers(UserDb *db, bool currentlyOnline);
 

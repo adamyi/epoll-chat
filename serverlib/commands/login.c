@@ -8,10 +8,13 @@
 void cmd_login_impl(UserDb *db, struct im_client *client,
                     struct LoginRequest *req) {
 #pragma GCC diagnostic pop
-  int res = login(db, req->username.value, req->password.value);
+  user_t *user = NULL;
+  int res = login(db, (char *)req->username.value, (char *)req->password.value,
+                  &user);
   switch (res) {
     case 0:  // success
       ac_log(AC_LOG_INFO, "login success");
+      client->user = user;
       break;
     case 1:  // user not found
     case 3:  // wrong password
@@ -30,6 +33,6 @@ void cmd_login_impl(UserDb *db, struct im_client *client,
 #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
 const im_command_t cmd_login = {.type = 1,
                                 .run = cmd_login_impl,
-                                .parser = parseLoginRequestFromProtobufMsg,
+                                .parser = parseLoginRequestFromBytes,
                                 .freeer = freeLoginRequest};
 #pragma GCC diagnostic pop

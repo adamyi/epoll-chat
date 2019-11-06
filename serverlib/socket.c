@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "achelper/ac_protobuf.h"
+
 #include "client.h"
 // do not sort
 #include "auth.h"
@@ -72,6 +74,8 @@ struct im_client *im_connection_accept(int epollfd, int sockfd) {
   }
   return client;
 }
+
+void send_protobuf(struct im_client *client, ac_protobuf_message_t *msg) {}
 
 void im_receive_command(UserDb *db, struct im_client *client,
                         struct epoll_event *event) {

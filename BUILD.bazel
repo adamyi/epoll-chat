@@ -1,6 +1,8 @@
 cc_binary(
   name = "server",
   srcs = ["server.c"],
+  copts = ["-fsanitize=address", "-m32", "-g"],
+  linkopts = ["-lasan", "-m32", "-g"],
   deps = [
     "//achelper",
     "//serverlib",

@@ -14,8 +14,9 @@ struct IMRequest *parseIMRequestFromProtobufMsg(ac_protobuf_message_t *msg) {
   ac_protobuf_field_t *type_f = ac_find_protobuf_field_in_msg(msg, 1);
   ret->type = *(uint32_t *)(type_f->value);
   ac_protobuf_field_t *value_f = ac_find_protobuf_field_in_msg(msg, 2);
-  ret->value.value = malloc(value_f->len);
+  ret->value.value = malloc(value_f->len + 1);
   memcpy(ret->value.value, value_f->value, value_f->len);
+  ret->value.value[value_f->len] = 0;
   ret->value.len = value_f->len;
   return ret;
 }

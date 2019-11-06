@@ -64,22 +64,23 @@ user_t *findUser(UserDb *db, const char *username) {
 // 2: user blocked
 // 3: wrong password
 // 4: another session is in place
-int login(UserDb *db, const char *username, const char *password) {
+int login(UserDb *db, const char *username, const char *password,
+          user_t **user) {
   int ct = (int)time(NULL);
-  user_t *user = findUser(db, username);
-  if (user == NULL) return 1;
-  if (ct < user->blocked) return 2;
-  if (strcmp(user->password, password) != 0) {
-    if ((++(user->attempts)) == 3) {
-      user->blocked = ct + db->block_duration;
-      user->attempts = 0;
+  *user = findUser(db, username);
+  if (*user == NULL) return 1;
+  if (ct < (*user)->blocked) return 2;
+  if (strcmp((*user)->password, password) != 0) {
+    if ((++((*user)->attempts)) == 3) {
+      (*user)->blocked = ct + db->block_duration;
+      (*user)->attempts = 0;
       return 2;
     }
     return 3;
   }
-  if (user->last_active + db->login_timeout > ct) return 4;
-  user->attempts = 0;
-  user->last_logged_in = (int)time(NULL);
+  if ((*user)->last_active + db->login_timeout > ct) return 4;
+  (*user)->attempts = 0;
+  (*user)->last_logged_in = (int)time(NULL);
   return 0;
 }
 

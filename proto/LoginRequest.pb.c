@@ -12,12 +12,14 @@
 struct LoginRequest *parseLoginRequestFromProtobufMsg(ac_protobuf_message_t *msg) {
   struct LoginRequest *ret = malloc(sizeof(struct LoginRequest));
   ac_protobuf_field_t *username_f = ac_find_protobuf_field_in_msg(msg, 1);
-  ret->username.value = malloc(username_f->len);
+  ret->username.value = malloc(username_f->len + 1);
   memcpy(ret->username.value, username_f->value, username_f->len);
+  ret->username.value[username_f->len] = 0;
   ret->username.len = username_f->len;
   ac_protobuf_field_t *password_f = ac_find_protobuf_field_in_msg(msg, 2);
-  ret->password.value = malloc(password_f->len);
+  ret->password.value = malloc(password_f->len + 1);
   memcpy(ret->password.value, password_f->value, password_f->len);
+  ret->password.value[password_f->len] = 0;
   ret->password.len = password_f->len;
   return ret;
 }

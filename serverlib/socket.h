@@ -25,4 +25,6 @@ struct im_client *im_connection_accept(int epollfd, int sockfd);
 void im_receive_command(UserDb *db, struct im_client *client,
                         struct epoll_event *event);
 
+void send_protobuf(struct im_client *client, ac_protobuf_message_t *msg);
+
 #endif

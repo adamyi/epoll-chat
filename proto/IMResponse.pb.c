@@ -14,8 +14,9 @@ struct IMResponse *parseIMResponseFromProtobufMsg(ac_protobuf_message_t *msg) {
   ac_protobuf_field_t *success_f = ac_find_protobuf_field_in_msg(msg, 1);
   ret->success = *(bool *)(success_f->value);
   ac_protobuf_field_t *msg_f = ac_find_protobuf_field_in_msg(msg, 2);
-  ret->msg.value = malloc(msg_f->len);
+  ret->msg.value = malloc(msg_f->len + 1);
   memcpy(ret->msg.value, msg_f->value, msg_f->len);
+  ret->msg.value[msg_f->len] = 0;
   ret->msg.len = msg_f->len;
   return ret;
 }

@@ -3,5 +3,7 @@ cc_library(
   srcs = glob(["*.c"]),
   hdrs = glob(["*.h"]),
   deps = ["//achelper"],
+  copts = ["-fsanitize=address", "-m32", "-g"],
+  linkopts = ["-lasan", "-m32"],
   visibility = ["//:__subpackages__"],
 )
