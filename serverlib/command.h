@@ -12,6 +12,8 @@
 typedef struct im_command {
   uint32_t type;
   void (*run)(UserDb *db, struct im_client *client, ac_protobuf_message_t *req);
+  void *(*parser)(ac_protobuf_message_t *msg);
+  void (*freeer)(void *val);
 } im_command_t;
 
 void parse_command(UserDb *db, struct im_client *client, uint8_t *cmd,

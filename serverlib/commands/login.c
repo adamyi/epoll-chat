@@ -1,18 +1,14 @@
 #include "achelper/ac_log.h"
 
 #include "login.h"
+#include "proto/LoginRequest.pb.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
 void cmd_login_impl(UserDb *db, struct im_client *client,
-                    ac_protobuf_message_t *req) {
-  ac_protobuf_field_t *username = ac_find_protobuf_field_in_msg(req, 1);
-  if (username == NULL) {
-    ac_log(AC_LOG_ERROR, "username does not exist");
-  }
-  ac_protobuf_field_t *password = ac_find_protobuf_field_in_msg(req, 2);
-  if (password == NULL) {
-    ac_log(AC_LOG_ERROR, "password does not exist");
-  }
-  int res = login(db, (char *)(username->value), (char *)(password->value));
+                    struct LoginRequest *req) {
+#pragma GCC diagnostic pop
+  int res = login(db, req->username.value, req->password.value);
   switch (res) {
     case 0:  // success
       ac_log(AC_LOG_INFO, "login success");
@@ -30,4 +26,10 @@ void cmd_login_impl(UserDb *db, struct im_client *client,
   }
 }
 
-const im_command_t cmd_login = {.type = 1, .run = cmd_login_impl};
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
+const im_command_t cmd_login = {.type = 1,
+                                .run = cmd_login_impl,
+                                .parser = parseLoginRequestFromProtobufMsg,
+                                .freeer = freeLoginRequest};
+#pragma GCC diagnostic pop

@@ -34,7 +34,9 @@ void parse_command(UserDb *db, struct im_client *client, uint8_t *cmd,
       ac_log(AC_LOG_DEBUG, "found implementation for request type %lu",
              reqtype);
       hasrun = true;
-      (*cmd)->run(db, client, req);
+      void *request = (*cmd)->parser(req);
+      (*cmd)->run(db, client, request);
+      (*cmd)->freeer(request);
       break;
     }
   }
