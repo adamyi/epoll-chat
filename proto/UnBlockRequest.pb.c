@@ -19,8 +19,8 @@ struct UnBlockRequest *parseUnBlockRequestFromProtobufMsg(ac_protobuf_message_t 
   return ret;
 }
 
-struct UnBlockRequest *parseUnBlockRequestFromBytes(uint8_t *bytes, size_t len) {
-  ac_protobuf_message_t *msg = ac_decode_protobuf_msg(bytes, len);
+struct UnBlockRequest *parseUnBlockRequestFromBytes(uint8_t *bytes, size_t len, size_t *read) {
+  ac_protobuf_message_t *msg = ac_decode_protobuf_msg(bytes, len, read);
   struct UnBlockRequest *ret = parseUnBlockRequestFromProtobufMsg(msg);
   ac_protobuf_free_msg(msg);
   return ret;

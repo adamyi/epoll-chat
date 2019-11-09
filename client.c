@@ -1,69 +1,159 @@
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <string.h>
+#define _GNU_SOURCE
+
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <poll.h>
+#include <sys/epoll.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 
-int main() {
-  // prepare server credentials
-  const char* server_name = "localhost";
-  const int server_port = 1500;
-  // change this port No if required
+#include <errno.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
-  // this struct will contain address + port No
+#include "achelper/ac_log.h"
+#include "achelper/ac_memory.h"
+#include "achelper/ac_protobuf.h"
+
+#include "clientlib/client.h"
+// do not sort
+#include "clientlib/auth.h"
+#include "clientlib/command.h"
+#include "clientlib/socket.h"
+
+#define MAX_EVENTS 16
+#define MAX_CLIENTS 32
+
+#define MAX_COMMAND 32768
+
+#define LISTEN_PORT 2333
+
+struct im_client *clients[MAX_CLIENTS] = {NULL};
+int nclients = 0;
+int epollfd;
+int masterfd;
+
+void *input_thread(void *arg) {
+  char buf[MAX_COMMAND];
+  while (true) {
+    if (fgets(buf, MAX_COMMAND, stdin) != buf) continue;
+    size_t l = strlen(buf);
+    ac_log(AC_LOG_DEBUG, "got command: %s (%u)", buf, l);
+    parse_command(epollfd, clients[0], buf, l, NULL);
+    ac_log(AC_LOG_DEBUG, "after parse");
+    struct epoll_event event;
+    event.data.fd = clients[0]->fd;
+    event.events = EPOLLIN | EPOLLOUT;
+    if (epoll_ctl(epollfd, EPOLL_CTL_MOD, clients[0]->fd, &event) < 0) {
+      fprintf(stderr, "Couldn't listen on output events for socket: %s\n",
+              strerror(errno));
+    }
+  }
+  return NULL;
+}
+
+void *network_thread(void *arg) {
+  struct epoll_event *events =
+      ac_malloc(MAX_EVENTS * sizeof(struct epoll_event), "epoll events");
+  memset(events, 0, MAX_EVENTS * sizeof(struct epoll_event));
+
+  while (true) {
+    int N = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+    for (int i = 0; i < N; i++) {
+      if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
+        fprintf(stderr, "disconnect\n");
+        // TODO: disconnect
+      } else if (events[i].data.fd == masterfd) {
+        struct sockaddr_in client_addr;
+        socklen_t client_addr_len = sizeof(client_addr);
+        int newsockfd =
+            accept(masterfd, (struct sockaddr *)&client_addr, &client_addr_len);
+        if (newsockfd < 0) {
+          fprintf(stderr, "couldn't accept connection\n");
+          continue;
+        }
+        make_socket_nonblocking(newsockfd);
+        clients[nclients++] = im_connection_accept(epollfd, newsockfd);
+      } else {
+        if (events[i].events & EPOLLIN) {
+          for (int i = 0; i < nclients; i++) {
+            if (clients[i]->fd == events[i].data.fd) {
+              im_receive_command(epollfd, NULL, clients[i], events + i);
+              break;
+            }
+          }
+        }
+        if (events[i].events & EPOLLOUT) {
+          printf("epollout\n");
+          for (int i = 0; i < nclients; i++) {
+            if (clients[i]->fd == events[i].data.fd) {
+              pthread_mutex_lock(&(clients[i]->lock));
+              im_send_buffer(epollfd, NULL, clients[i],
+                             &(clients[i]->outbuffer), events + i);
+              pthread_mutex_unlock(&(clients[i]->lock));
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+  return NULL;
+}
+
+int main(int argc, char *argv[]) {
+  setvbuf(stdout, NULL, _IONBF, 0);
+
+  if (argc < 3) {
+    ac_log(AC_LOG_FATAL, "Usage: ./client server_ip server_port");
+  }
+  char *server_name = argv[1];
+  int server_port = atoi(argv[2]);
+
   struct sockaddr_in server_address;
   memset(&server_address, 0, sizeof(server_address));
   server_address.sin_family = AF_INET;
 
-  // http://beej.us/guide/bgnet/output/html/multipage/inet_ntopman.html
   inet_pton(AF_INET, server_name, &server_address.sin_addr);
 
-  // htons: port in network order format
   server_address.sin_port = htons(server_port);
 
-  // open a TCP stream socket using SOCK_STREAM, verify if socket successfuly
-  // opened
+  // open socket
   int sock;
   if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-    printf("could not open socket\n");
+    ac_log(AC_LOG_FATAL, "Could not open socket");
+  }
+
+  // 3 way handshake
+  if (connect(sock, (struct sockaddr *)&server_address,
+              sizeof(server_address)) < 0) {
+    ac_log(AC_LOG_FATAL, "Could not connect to server");
     return 1;
   }
 
-  // TCP is connection oriented, a reliable connection
-  // **must** be established before any data is exchanged
-  // initiate 3 way handshake
-  // verify everything ok
-  if (connect(sock, (struct sockaddr*)&server_address, sizeof(server_address)) <
-      0) {
-    printf("could not connect to server\n");
-    return 1;
+  masterfd = listen_socket(LISTEN_PORT);
+
+  epollfd = epoll_create1(0);
+  if (epollfd < 0) {
+    ac_log(AC_LOG_FATAL, "couldn't create epoll: %s", strerror(errno));
   }
 
-  // get input from the user
-  char data_to_send[100];
-  printf("\nEnter a string :  ");
-  fgets(data_to_send, 100, stdin);
-  // fgets reads in the newline character in buffer, get rid of it
-  strtok(data_to_send, "\n");
+  struct epoll_event accept_event;
+  accept_event.data.fd = masterfd;
+  accept_event.events = EPOLLIN | EPOLLET;
+  if (epoll_ctl(epollfd, EPOLL_CTL_ADD, masterfd, &accept_event) < 0) {
+    ac_log(AC_LOG_FATAL, "epoll_ctl EPOLL_CTL_ADD error: %s", strerror(errno));
+  }
 
-  // data that will be sent to the server
-  printf("read : %s\n", data_to_send);
+  clients[nclients++] = im_connection_accept(epollfd, sock);
 
-  // actual send call for TCP socket
-  send(sock, data_to_send, strlen(data_to_send) + 1, 0);
-
-  // prepare to receive
-  int len = 0, maxlen = 100;
-  char buffer[maxlen];
-  char* pbuffer = buffer;
-
-  // ready to receive back the reply from the server
-  len = recv(sock, pbuffer, maxlen, 0);
-
-  buffer[len] = '\0';
-  printf("received: '%s'\n", buffer);
-
-  // close the socket
-  close(sock);
-  return 0;
+  pthread_t nt, it;
+  pthread_create(&nt, NULL, &network_thread, NULL);
+  pthread_create(&it, NULL, &input_thread, NULL);
+  pthread_join(nt, NULL);
+  pthread_join(it, NULL);
 }

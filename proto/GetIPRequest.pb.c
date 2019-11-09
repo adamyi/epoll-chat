@@ -19,8 +19,8 @@ struct GetIPRequest *parseGetIPRequestFromProtobufMsg(ac_protobuf_message_t *msg
   return ret;
 }
 
-struct GetIPRequest *parseGetIPRequestFromBytes(uint8_t *bytes, size_t len) {
-  ac_protobuf_message_t *msg = ac_decode_protobuf_msg(bytes, len);
+struct GetIPRequest *parseGetIPRequestFromBytes(uint8_t *bytes, size_t len, size_t *read) {
+  ac_protobuf_message_t *msg = ac_decode_protobuf_msg(bytes, len, read);
   struct GetIPRequest *ret = parseGetIPRequestFromProtobufMsg(msg);
   ac_protobuf_free_msg(msg);
   return ret;

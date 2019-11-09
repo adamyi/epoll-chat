@@ -10,7 +10,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
-struct IMResponse *cmd_login_impl(UserDb *db, struct im_client *client,
+struct IMResponse *cmd_login_impl(UserDb *db, int epollfd, im_client_t *client,
                                   struct LoginRequest *req) {
   struct IMResponse *rsp = malloc(sizeof(struct IMResponse));
   rsp->success = false;

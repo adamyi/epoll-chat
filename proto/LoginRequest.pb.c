@@ -24,8 +24,8 @@ struct LoginRequest *parseLoginRequestFromProtobufMsg(ac_protobuf_message_t *msg
   return ret;
 }
 
-struct LoginRequest *parseLoginRequestFromBytes(uint8_t *bytes, size_t len) {
-  ac_protobuf_message_t *msg = ac_decode_protobuf_msg(bytes, len);
+struct LoginRequest *parseLoginRequestFromBytes(uint8_t *bytes, size_t len, size_t *read) {
+  ac_protobuf_message_t *msg = ac_decode_protobuf_msg(bytes, len, read);
   struct LoginRequest *ret = parseLoginRequestFromProtobufMsg(msg);
   ac_protobuf_free_msg(msg);
   return ret;

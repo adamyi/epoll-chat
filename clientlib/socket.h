@@ -38,4 +38,6 @@ void send_response_to_client(int epollfd, im_client_t *client,
 void send_response_to_user(UserDb *db, int epollfd, user_t *user,
                            struct IMResponse *msg);
 
+void reset_buffer_start(im_buffer_t *buffer);
+
 #endif

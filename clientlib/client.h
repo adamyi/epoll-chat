@@ -1,6 +1,8 @@
 #ifndef IM_CLIENT_H_
 #define IM_CLIENT_H_
 
+#include <pthread.h>
+
 #include "auth.h"
 
 #define MSG_LIMIT 32768
@@ -11,6 +13,7 @@ typedef struct im_client {
   user_t *user;
   im_buffer_t outbuffer;
   im_buffer_t inbuffer;
+  pthread_mutex_t lock;
 } im_client_t;
 
 #endif

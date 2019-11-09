@@ -26,8 +26,8 @@ struct MessageRequest *parseMessageRequestFromProtobufMsg(ac_protobuf_message_t 
   return ret;
 }
 
-struct MessageRequest *parseMessageRequestFromBytes(uint8_t *bytes, size_t len) {
-  ac_protobuf_message_t *msg = ac_decode_protobuf_msg(bytes, len);
+struct MessageRequest *parseMessageRequestFromBytes(uint8_t *bytes, size_t len, size_t *read) {
+  ac_protobuf_message_t *msg = ac_decode_protobuf_msg(bytes, len, read);
   struct MessageRequest *ret = parseMessageRequestFromProtobufMsg(msg);
   ac_protobuf_free_msg(msg);
   return ret;

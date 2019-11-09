@@ -20,8 +20,8 @@ struct WhoElseRequest *parseWhoElseRequestFromProtobufMsg(ac_protobuf_message_t 
   return ret;
 }
 
-struct WhoElseRequest *parseWhoElseRequestFromBytes(uint8_t *bytes, size_t len) {
-  ac_protobuf_message_t *msg = ac_decode_protobuf_msg(bytes, len);
+struct WhoElseRequest *parseWhoElseRequestFromBytes(uint8_t *bytes, size_t len, size_t *read) {
+  ac_protobuf_message_t *msg = ac_decode_protobuf_msg(bytes, len, read);
   struct WhoElseRequest *ret = parseWhoElseRequestFromProtobufMsg(msg);
   ac_protobuf_free_msg(msg);
   return ret;

@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "achelper/ac_log.h"
 #include "achelper/ac_memory.h"
@@ -31,8 +32,7 @@ int main(int argc, char *argv[]) {
   struct im_client *clients[MAX_CLIENTS] = {NULL};
   int nclients = 0;
   if (argc < 4) {
-    fprintf(stderr, "usage: ./server server_port block_duration timeout\n");
-    exit(1);
+    ac_log(AC_LOG_FATAL, "usage: ./server server_port block_duration timeout");
   }
   int port = atoi(argv[1]);
   int block_duration = atoi(argv[2]);
@@ -40,8 +40,7 @@ int main(int argc, char *argv[]) {
 
   FILE *udbfp = fopen("credentials.txt", "r");
   if (udbfp == NULL) {
-    fprintf(stderr, "couldn't open credentials.txt\n");
-    exit(1);
+    ac_log(AC_LOG_FATAL, "couldn't open credentials.txt");
   }
   UserDb *db = buildUserDb(udbfp, block_duration, timeout);
   fclose(udbfp);
@@ -50,16 +49,14 @@ int main(int argc, char *argv[]) {
 
   int epollfd = epoll_create1(0);
   if (epollfd < 0) {
-    fprintf(stderr, "couldn't create epoll: %s\n", strerror(errno));
-    exit(1);
+    ac_log(AC_LOG_FATAL, "couldn't create epoll: %s", strerror(errno));
   }
 
   struct epoll_event accept_event;
   accept_event.data.fd = masterfd;
   accept_event.events = EPOLLIN | EPOLLET;
   if (epoll_ctl(epollfd, EPOLL_CTL_ADD, masterfd, &accept_event) < 0) {
-    fprintf(stderr, "epoll_ctl EPOLL_CTL_ADD error: %s\n", strerror(errno));
-    exit(1);
+    ac_log(AC_LOG_FATAL, "epoll_ctl EPOLL_CTL_ADD error: %s", strerror(errno));
   }
 
   struct epoll_event *events =
@@ -96,7 +93,13 @@ int main(int argc, char *argv[]) {
           printf("epollout\n");
           for (int i = 0; i < nclients; i++) {
             if (clients[i]->fd == events[i].data.fd) {
-              im_send_buffer(epollfd, db, clients[i], events + i);
+              im_send_buffer(epollfd, db, clients[i], &(clients[i]->outbuffer),
+                             events + i);
+              int ct = (int)time(NULL);
+              if (clients[i]->user != NULL &&
+                  clients[i]->user->last_active + db->login_timeout > ct)
+                im_send_buffer(epollfd, db, clients[i],
+                               &(clients[i]->user->buffer), events + i);
               break;
             }
           }

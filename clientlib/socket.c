@@ -1,6 +1,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <poll.h>
+#include <pthread.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -79,6 +80,10 @@ im_client_t *im_connection_accept(int epollfd, int sockfd) {
   if (epoll_ctl(epollfd, EPOLL_CTL_ADD, sockfd, &event) < 0) {
     fprintf(stderr, "Couldn't add socket: %s\n", strerror(errno));
   }
+
+  if (pthread_mutex_init(&(client->lock), NULL) != 0) {
+    fprintf(stderr, "pthread_mutex_init failed");
+  }
   return client;
 }
 
@@ -109,7 +114,6 @@ void send_response(im_buffer_t *buffer, struct IMResponse *msg) {
 
 void send_response_to_client(int epollfd, im_client_t *client,
                              struct IMResponse *msg) {
-  ac_log(AC_LOG_DEBUG, "send_response_to_client");
   send_response(&(client->outbuffer), msg);
   struct epoll_event event;
   event.data.fd = client->fd;
@@ -137,10 +141,8 @@ void im_receive_command(int epollfd, UserDb *db, im_client_t *client,
       client->inbuffer.buffer_capacity - client->inbuffer.buffer_start, 0);
   client->inbuffer.buffer_end += nbytes;
   struct IMResponse *rsp = NULL;
-  // ac_log(AC_LOG_DEBUG, "%s", client->inbuffer.buffer +
-  // client->inbuffer.buffer_start);
-  client->inbuffer.buffer_start += parse_command(
-      db, epollfd, client, client->inbuffer.buffer,
+  client->inbuffer.buffer_start += parse_response(
+      epollfd, client, client->inbuffer.buffer,
       client->inbuffer.buffer_end - client->inbuffer.buffer_start, &rsp);
   if (rsp != NULL) {
     send_response_to_client(epollfd, client, rsp);
@@ -152,6 +154,7 @@ void im_send_buffer(int epollfd, UserDb *db, im_client_t *client,
   size_t len = buffer->buffer_end - buffer->buffer_start;
   if (len > 0) {
     ac_log(AC_LOG_INFO, "to send: %d bytes", len);
+    // ac_log(AC_LOG_DEBUG, "%s", buffer->buffer + buffer->buffer_start);
     int nsent = send(client->fd, buffer->buffer + buffer->buffer_start, len, 0);
     ac_log(AC_LOG_INFO, "sent: %d bytes", nsent);
     if (nsent == -1) {

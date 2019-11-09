@@ -9,13 +9,14 @@
 
 typedef struct im_command {
   uint32_t type;
-  struct IMResponse *(*run)(UserDb *db, struct im_client *client, void *req);
-  void *(*parser)(uint8_t *bytes, size_t len);
+  struct IMResponse *(*run)(UserDb *db, int epollfd, im_client_t *client,
+                            void *req);
+  void *(*parser)(uint8_t *bytes, size_t len, size_t *readbytes);
   void (*freeer)(void *val);
 } im_command_t;
 
-int parse_command(UserDb *db, struct im_client *client, uint8_t *cmd,
-                  size_t len, struct IMResponse **rsp);
+size_t parse_command(UserDb *db, int epollfd, im_client_t *client, uint8_t *cmd,
+                     size_t len, struct IMResponse **rsp);
 
 extern const im_command_t *enabled_commands[];
 

@@ -13,7 +13,7 @@ struct GetIPRequest {
 };
 
 struct GetIPRequest *parseGetIPRequestFromProtobufMsg(ac_protobuf_message_t *msg);
-struct GetIPRequest *parseGetIPRequestFromBytes(uint8_t *bytes, size_t len);
+struct GetIPRequest *parseGetIPRequestFromBytes(uint8_t *bytes, size_t len, size_t *read);
 ac_protobuf_message_t *encodeGetIPRequestToProtobufMsg(struct GetIPRequest *msg);
 uint8_t *encodeGetIPRequestToBytes(struct GetIPRequest *msg, size_t *len);
 void freeGetIPRequest(struct GetIPRequest *val);

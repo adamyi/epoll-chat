@@ -14,7 +14,6 @@
 trie_user_t *newTrieUserNode() {
   trie_user_t *node = ac_malloc(sizeof(trie_user_t), "user db trie node");
   memset(node->child, 0, sizeof(trie_user_t *) * 256);
-  node->user = NULL;
   return node;
 }
 
@@ -70,10 +69,7 @@ user_t *findUser(UserDb *db, const char *username) {
 int login(UserDb *db, const char *username, const char *password,
           user_t **user) {
   int ct = (int)time(NULL);
-  printf("%s\n", username);
-  printf("%s\n", password);
   *user = findUser(db, username);
-  printf("%p %p\n", user, *user);
   if (*user == NULL) return 1;
   if (ct < (*user)->blocked) return 2;
   if (strcmp((*user)->password, password) != 0) {

@@ -14,7 +14,7 @@ struct IMRequest {
 };
 
 struct IMRequest *parseIMRequestFromProtobufMsg(ac_protobuf_message_t *msg);
-struct IMRequest *parseIMRequestFromBytes(uint8_t *bytes, size_t len);
+struct IMRequest *parseIMRequestFromBytes(uint8_t *bytes, size_t len, size_t *read);
 ac_protobuf_message_t *encodeIMRequestToProtobufMsg(struct IMRequest *msg);
 uint8_t *encodeIMRequestToBytes(struct IMRequest *msg, size_t *len);
 void freeIMRequest(struct IMRequest *val);
