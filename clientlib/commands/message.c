@@ -36,9 +36,10 @@ struct IMRequest *cmd_message_impl(int epollfd, im_client_t *client,
   mreq->msg.len = asprintf(&(mreq->msg.value), "%s", message);
   mreq->broadcast = false;
   ret->value.value = encodeMessageRequestToBytes(mreq, &(ret->value.len));
+  freeMessageRequest(mreq);
   return ret;
 }
 
 const im_command_t cmd_message = {
-    .type = 1, .prefix = "message ", .run = cmd_message_impl};
+    .type = 2, .prefix = "message ", .run = cmd_message_impl};
 #pragma GCC diagnostic pop

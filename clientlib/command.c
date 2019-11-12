@@ -12,14 +12,16 @@
 #include "proto/IMRequest.pb.h"
 #include "proto/IMResponse.pb.h"
 
+#include "clientlib/commands/block.h"
 #include "clientlib/commands/broadcast.h"
 #include "clientlib/commands/login.h"
 #include "clientlib/commands/message.h"
+#include "clientlib/commands/unblock.h"
 
 #include "clientlib/socket.h"
 
-const im_command_t *enabled_commands[] = {&cmd_login, &cmd_message,
-                                          &cmd_broadcast, NULL};
+const im_command_t *enabled_commands[] = {
+    &cmd_login, &cmd_message, &cmd_broadcast, &cmd_block, &cmd_unblock, NULL};
 
 void send_request(im_buffer_t *buffer, struct IMRequest *msg) {
   ac_log(AC_LOG_INFO, "sending response");
@@ -70,10 +72,12 @@ void parse_command(int epollfd, im_client_t *client, uint8_t *command,
              (*cmd)->prefix);
       hasrun = true;
       struct IMRequest *rsp = (*cmd)->run(epollfd, client, command);
-      pthread_mutex_lock(&(client->lock));
-      send_request(&(client->outbuffer), rsp);
-      pthread_mutex_unlock(&(client->lock));
-      freeIMRequest(rsp);
+      if (rsp != NULL) {
+        pthread_mutex_lock(&(client->lock));
+        send_request(&(client->outbuffer), rsp);
+        pthread_mutex_unlock(&(client->lock));
+        freeIMRequest(rsp);
+      }
       break;
     }
   }

@@ -15,10 +15,11 @@ typedef struct user {
   char *password;
   int last_logged_in;
   int last_active;
-  int blocked;
+  int last_blocked;
   int attempts;
   struct im_client *client;
   im_buffer_t buffer;
+  struct linked_user *blocked;
 } user_t;
 
 typedef struct linked_user {
@@ -45,6 +46,12 @@ user_t *findUser(UserDb *db, const char *username);
 
 int login(UserDb *db, const char *username, const char *password,
           user_t **user);
+
+bool hasBlockedUser(user_t *by, user_t *u);
+
+void blockUser(user_t *by, user_t *u);
+
+void unblockUser(user_t *by, user_t *u);
 
 linked_user_t *loggedInUsers(UserDb *db, bool currentlyOnline);
 

@@ -48,7 +48,8 @@ uint8_t *encodeGetIPRequestToBytes(struct GetIPRequest *msg, size_t *len) {
 }
 
 void freeGetIPRequest(struct GetIPRequest *val) {
-  free(val->username.value);
+  if (val->username.len > 0)
+    free(val->username.value);
   free(val);
 }
 // clang-format on

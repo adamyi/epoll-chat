@@ -33,9 +33,10 @@ UserDb *buildUserDb(FILE *fd, int block_duration, int login_timeout) {
     newuser->password = strdup(password);
     newuser->last_logged_in = -1;
     newuser->last_active = -1;
-    newuser->blocked = -1;
+    newuser->last_blocked = -1;
     newuser->attempts = 0;
     newuser->client = NULL;
+    newuser->blocked = NULL;
     init_buffer(&(newuser->buffer), OUT_BUFFER_DEFAULT_SIZE);
 
     linked_user_t *newuser_link =
@@ -78,10 +79,10 @@ int login(UserDb *db, const char *username, const char *password,
   *user = findUser(db, username);
   printf("%p %p\n", user, *user);
   if (*user == NULL) return 1;
-  if (ct < (*user)->blocked) return 2;
+  if (ct < (*user)->last_blocked) return 2;
   if (strcmp((*user)->password, password) != 0) {
     if ((++((*user)->attempts)) == 3) {
-      (*user)->blocked = ct + db->block_duration;
+      (*user)->last_blocked = ct + db->block_duration;
       (*user)->attempts = 0;
       return 2;
     }
@@ -91,6 +92,34 @@ int login(UserDb *db, const char *username, const char *password,
   (*user)->attempts = 0;
   (*user)->last_active = (*user)->last_logged_in = (int)time(NULL);
   return 0;
+}
+
+bool hasBlockedUser(user_t *by, user_t *u) {
+  linked_user_t *curr = by->blocked;
+  while (curr != NULL) {
+    if (curr->user == u) return true;
+    curr = curr->next;
+  }
+  return false;
+}
+
+void blockUser(user_t *by, user_t *u) {
+  if (u == by) return;  // cannot block self
+  if (hasBlockedUser(by, u)) return;
+  linked_user_t *newblock = malloc(sizeof(linked_user_t));
+  newblock->user = u;
+  newblock->next = by->blocked;
+  by->blocked = newblock;
+}
+
+void unblockUser(user_t *by, user_t *u) {
+  linked_user_t **curr = &(by->blocked);
+  while (*curr != NULL) {
+    if ((*curr)->user == u) {
+      *curr = (*curr)->next;
+    }
+    if (*curr != NULL) curr = &((*curr)->next);
+  }
 }
 
 linked_user_t *loggedInUsers(UserDb *db, bool currentlyOnline) {

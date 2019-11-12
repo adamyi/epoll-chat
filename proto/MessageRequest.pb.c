@@ -69,8 +69,10 @@ uint8_t *encodeMessageRequestToBytes(struct MessageRequest *msg, size_t *len) {
 }
 
 void freeMessageRequest(struct MessageRequest *val) {
-  free(val->username.value);
-  free(val->msg.value);
+  if (val->username.len > 0)
+    free(val->username.value);
+  if (val->msg.len > 0)
+    free(val->msg.value);
   free(val);
 }
 // clang-format on

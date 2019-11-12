@@ -23,6 +23,7 @@ struct IMRequest *cmd_broadcast_impl(int epollfd, im_client_t *client,
   mreq->msg.len = asprintf(&(mreq->msg.value), "%s", message);
   mreq->broadcast = true;
   ret->value.value = encodeMessageRequestToBytes(mreq, &(ret->value.len));
+  freeMessageRequest(mreq);
   return ret;
 }
 

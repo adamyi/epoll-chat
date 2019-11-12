@@ -48,7 +48,8 @@ uint8_t *encodeBlockRequestToBytes(struct BlockRequest *msg, size_t *len) {
 }
 
 void freeBlockRequest(struct BlockRequest *val) {
-  free(val->username.value);
+  if (val->username.len > 0)
+    free(val->username.value);
   free(val);
 }
 // clang-format on

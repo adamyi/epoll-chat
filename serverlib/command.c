@@ -10,10 +10,13 @@
 #include "proto/IMRequest.pb.h"
 #include "proto/IMResponse.pb.h"
 
+#include "serverlib/commands/block.h"
 #include "serverlib/commands/login.h"
 #include "serverlib/commands/message.h"
+#include "serverlib/commands/unblock.h"
 
-const im_command_t *enabled_commands[] = {&cmd_login, &cmd_message, NULL};
+const im_command_t *enabled_commands[] = {&cmd_login, &cmd_message, &cmd_block,
+                                          &cmd_unblock, NULL};
 
 size_t parse_command(UserDb *db, int epollfd, im_client_t *client, uint8_t *cmd,
                      size_t len, struct IMResponse **rsp) {

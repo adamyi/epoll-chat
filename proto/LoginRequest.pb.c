@@ -61,8 +61,10 @@ uint8_t *encodeLoginRequestToBytes(struct LoginRequest *msg, size_t *len) {
 }
 
 void freeLoginRequest(struct LoginRequest *val) {
-  free(val->username.value);
-  free(val->password.value);
+  if (val->username.len > 0)
+    free(val->username.value);
+  if (val->password.len > 0)
+    free(val->password.value);
   free(val);
 }
 // clang-format on

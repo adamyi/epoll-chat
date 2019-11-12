@@ -40,6 +40,7 @@ void *input_thread(void *arg) {
   while (true) {
     if (fgets(buf, MAX_COMMAND, stdin) != buf) continue;
     size_t l = strlen(buf);
+    buf[--l] = '\0';  // remove ending \n
     ac_log(AC_LOG_DEBUG, "got command: %s (%u)", buf, l);
     parse_command(epollfd, clients[0], buf, l, NULL);
     ac_log(AC_LOG_DEBUG, "after parse");
@@ -80,6 +81,7 @@ void *network_thread(void *arg) {
         if (events[i].events & EPOLLIN) {
           for (int i = 0; i < nclients; i++) {
             if (clients[i]->fd == events[i].data.fd) {
+              printf("received command\n");
               im_receive_command(epollfd, NULL, clients[i], events + i);
               break;
             }

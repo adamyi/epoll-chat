@@ -28,6 +28,7 @@ struct IMRequest *cmd_login_impl(int epollfd, im_client_t *client, char *req) {
   lreq->username.len = strlen(username);
   lreq->password.len = strlen(password);
   ret->value.value = encodeLoginRequestToBytes(lreq, &(ret->value.len));
+  freeLoginRequest(lreq);
   return ret;
 }
 

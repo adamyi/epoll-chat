@@ -56,7 +56,8 @@ uint8_t *encodeIMResponseToBytes(struct IMResponse *msg, size_t *len) {
 }
 
 void freeIMResponse(struct IMResponse *val) {
-  free(val->msg.value);
+  if (val->msg.len > 0)
+    free(val->msg.value);
   free(val);
 }
 // clang-format on

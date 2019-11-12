@@ -56,7 +56,8 @@ uint8_t *encodeIMRequestToBytes(struct IMRequest *msg, size_t *len) {
 }
 
 void freeIMRequest(struct IMRequest *val) {
-  free(val->value.value);
+  if (val->value.len > 0)
+    free(val->value.value);
   free(val);
 }
 // clang-format on

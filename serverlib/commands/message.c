@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include "achelper/ac_log.h"
 
 #include "message.h"
@@ -12,8 +13,20 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
-bool sendMessage(UserDb *db, int epollfd, user_t *to, user_t *from, char *msg) {
-  // TODO: block check
+
+#define MAX_MESSAGE_ERROR_LENGTH 1024
+
+static struct IMResponse *sendError(char *errmsg) {
+  struct IMResponse *rsp = malloc(sizeof(struct IMResponse));
+  rsp->success = false;
+  rsp->msg.value = (uint8_t *)errmsg;
+  rsp->msg.len = strlen(errmsg);
+  return rsp;
+}
+
+static bool sendMessage(UserDb *db, int epollfd, user_t *to, user_t *from,
+                        char *msg) {
+  if (hasBlockedUser(to, from)) return false;
   struct IMResponse *rsp = malloc(sizeof(struct IMResponse));
   rsp->success = true;
   rsp->msg.len = asprintf(&(rsp->msg.value), "%s: %s", from->username, msg);
@@ -25,25 +38,40 @@ bool sendMessage(UserDb *db, int epollfd, user_t *to, user_t *from, char *msg) {
 struct IMResponse *cmd_message_impl(UserDb *db, int epollfd,
                                     im_client_t *client,
                                     struct MessageRequest *req) {
+  char *errmsg = malloc(MAX_MESSAGE_ERROR_LENGTH);
   if (!isUserLoggedIn(db, client->user)) {
-    struct IMResponse *rsp = malloc(sizeof(struct IMResponse));
-    rsp->success = false;
-    rsp->msg.len = asprintf(&(rsp->msg.value), "You are not logged in.");
-    return rsp;
+    strcpy(errmsg, "You are not logged in.");
+    return sendError(errmsg);
   }
   if (req->broadcast) {
     linked_user_t *curr = db->first;
+    bool success = true;
     while (curr != NULL) {
       if (curr->user != NULL && curr->user != client->user) {
-        sendMessage(db, epollfd, curr->user, client->user,
-                    (char *)req->msg.value);
+        success &= sendMessage(db, epollfd, curr->user, client->user,
+                               (char *)req->msg.value);
       }
       curr = curr->next;
     }
+    if (!success) {
+      sprintf(errmsg,
+              "Your message could not be delivered to some of the recipients.");
+      return sendError(errmsg);
+    }
   } else {
     user_t *user = findUser(db, (char *)req->username.value);
-    sendMessage(db, epollfd, user, client->user, (char *)req->msg.value);
+    if (user == NULL) {
+      sprintf(errmsg, "%s does not exist on server.", req->username.value);
+      return sendError(errmsg);
+    }
+    if (!sendMessage(db, epollfd, user, client->user, (char *)req->msg.value)) {
+      sprintf(errmsg,
+              "Your message couldn't be delivered because %s has blocked you",
+              req->username.value);
+      return sendError(errmsg);
+    }
   }
+  free(errmsg);
   return NULL;
 }
 
