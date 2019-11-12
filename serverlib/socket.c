@@ -19,6 +19,7 @@
 #include "client.h"
 // do not sort
 #include "auth.h"
+#include "buffer.h"
 #include "command.h"
 #include "socket.h"
 
@@ -59,13 +60,6 @@ int listen_socket(int portnum) {
   return sockfd;
 }
 
-void init_buffer(im_buffer_t *buffer, size_t size) {
-  buffer->buffer = malloc(size);
-  buffer->buffer_capacity = size;
-  buffer->buffer_end = 0;
-  buffer->buffer_start = 0;
-}
-
 im_client_t *im_connection_accept(int epollfd, int sockfd) {
   im_client_t *client = malloc(sizeof(im_client_t));
   memset(client, 0, sizeof(im_client_t));
@@ -80,14 +74,6 @@ im_client_t *im_connection_accept(int epollfd, int sockfd) {
     fprintf(stderr, "Couldn't add socket: %s\n", strerror(errno));
   }
   return client;
-}
-
-void reset_buffer_start(im_buffer_t *buffer) {
-  if (buffer->buffer_start == 0) return;
-  memcpy(buffer->buffer, buffer->buffer + buffer->buffer_start,
-         buffer->buffer_end - buffer->buffer_start);
-  buffer->buffer_end -= buffer->buffer_start;
-  buffer->buffer_start = 0;
 }
 
 void send_response(im_buffer_t *buffer, struct IMResponse *msg) {
@@ -122,9 +108,12 @@ void send_response_to_client(int epollfd, im_client_t *client,
 
 void send_response_to_user(UserDb *db, int epollfd, user_t *user,
                            struct IMResponse *msg) {
+  printf("send response to user %s\n", msg->msg.value);
   if (user->client != NULL && isUserLoggedIn(db, user)) {
+    printf("send_response_to_client\n");
     send_response_to_client(epollfd, user->client, msg);
   } else {
+    printf("send_response\n");
     send_response(&(user->buffer), msg);
   }
 }
@@ -149,6 +138,7 @@ void im_receive_command(int epollfd, UserDb *db, im_client_t *client,
 
 void im_send_buffer(int epollfd, UserDb *db, im_client_t *client,
                     im_buffer_t *buffer, struct epoll_event *event) {
+  printf("im_send_buffer\n");
   size_t len = buffer->buffer_end - buffer->buffer_start;
   if (len > 0) {
     ac_log(AC_LOG_INFO, "to send: %d bytes", len);
@@ -162,10 +152,10 @@ void im_send_buffer(int epollfd, UserDb *db, im_client_t *client,
     len -= nsent;
   }
   if (len == 0) {
-    struct epoll_event event;
-    event.data.fd = client->fd;
-    event.events = EPOLLIN;
-    if (epoll_ctl(epollfd, EPOLL_CTL_MOD, client->fd, &event) < 0) {
+    struct epoll_event nevent;
+    nevent.data.fd = client->fd;
+    nevent.events = EPOLLIN;
+    if (epoll_ctl(epollfd, EPOLL_CTL_MOD, client->fd, &nevent) < 0) {
       fprintf(stderr, "Couldn't listen on input events for socket: %s\n",
               strerror(errno));
     }

@@ -30,8 +30,6 @@
 
 #define MAX_COMMAND 32768
 
-#define LISTEN_PORT 2333
-
 struct im_client *clients[MAX_CLIENTS] = {NULL};
 int nclients = 0;
 int epollfd;
@@ -135,7 +133,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  masterfd = listen_socket(LISTEN_PORT);
+  masterfd = listen_socket(0);
 
   epollfd = epoll_create1(0);
   if (epollfd < 0) {

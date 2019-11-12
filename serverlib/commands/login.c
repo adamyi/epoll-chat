@@ -21,6 +21,7 @@ struct IMResponse *cmd_login_impl(UserDb *db, int epollfd, im_client_t *client,
     case 0:  // success
       ac_log(AC_LOG_INFO, "login success");
       client->user = user;
+      user->client = client;
       rsp->success = true;
       rsp->msg.len = asprintf(&(rsp->msg.value), "Welcome %s!", user->username);
       break;

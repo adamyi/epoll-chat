@@ -18,6 +18,7 @@ bool sendMessage(UserDb *db, int epollfd, user_t *to, user_t *from, char *msg) {
   rsp->success = true;
   rsp->msg.len = asprintf(&(rsp->msg.value), "%s: %s", from->username, msg);
   send_response_to_user(db, epollfd, to, rsp);
+  freeIMResponse(rsp);
   return true;
 }
 

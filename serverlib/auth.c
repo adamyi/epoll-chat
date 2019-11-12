@@ -10,6 +10,7 @@
 #include "client.h"
 // do not sort
 #include "auth.h"
+#include "buffer.h"
 
 trie_user_t *newTrieUserNode() {
   trie_user_t *node = ac_malloc(sizeof(trie_user_t), "user db trie node");
@@ -35,13 +36,15 @@ UserDb *buildUserDb(FILE *fd, int block_duration, int login_timeout) {
     newuser->blocked = -1;
     newuser->attempts = 0;
     newuser->client = NULL;
+    init_buffer(&(newuser->buffer), OUT_BUFFER_DEFAULT_SIZE);
+
     linked_user_t *newuser_link =
         ac_malloc(sizeof(linked_user_t), "user user linked list");
     newuser_link->user = newuser;
     newuser_link->next = NULL;
     *next = newuser_link;
     next = &(newuser_link->next);
-
+    
     trie_user_t *curr = db->root;
     for (int i = 0; username[i] != '\0'; i++) {
       if (curr->child[(uint8_t)username[i]] == NULL)
@@ -86,7 +89,7 @@ int login(UserDb *db, const char *username, const char *password,
   }
   if (isUserLoggedIn(db, *user)) return 4;
   (*user)->attempts = 0;
-  (*user)->last_logged_in = (int)time(NULL);
+  (*user)->last_active = (*user)->last_logged_in = (int)time(NULL);
   return 0;
 }
 

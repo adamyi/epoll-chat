@@ -65,6 +65,7 @@ int main(int argc, char *argv[]) {
 
   while (true) {
     int N = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+    ac_log(AC_LOG_DEBUG, "epoll_wait returned %d", N);
     for (int i = 0; i < N; i++) {
       if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
         fprintf(stderr, "disconnect\n");
@@ -74,32 +75,39 @@ int main(int argc, char *argv[]) {
         socklen_t client_addr_len = sizeof(client_addr);
         int newsockfd =
             accept(masterfd, (struct sockaddr *)&client_addr, &client_addr_len);
+        ac_log(AC_LOG_DEBUG, "new socket %d", newsockfd);
         if (newsockfd < 0) {
           fprintf(stderr, "couldn't accept connection\n");
           continue;
         }
         make_socket_nonblocking(newsockfd);
         clients[nclients++] = im_connection_accept(epollfd, newsockfd);
+        ac_log(AC_LOG_DEBUG, "done - new socket %d", newsockfd);
       } else {
         if (events[i].events & EPOLLIN) {
-          for (int i = 0; i < nclients; i++) {
-            if (clients[i]->fd == events[i].data.fd) {
-              im_receive_command(epollfd, db, clients[i], events + i);
+          printf("epollin\n");
+          for (int j = 0; j < nclients; j++) {
+            if (clients[j]->fd == events[i].data.fd) {
+              printf("calling im_receive_command\n");
+              im_receive_command(epollfd, db, clients[j], events + i);
               break;
             }
           }
         }
         if (events[i].events & EPOLLOUT) {
           printf("epollout\n");
-          for (int i = 0; i < nclients; i++) {
-            if (clients[i]->fd == events[i].data.fd) {
-              im_send_buffer(epollfd, db, clients[i], &(clients[i]->outbuffer),
+          for (int j = 0; j < nclients; j++) {
+            printf("checking %d\n", j);
+            if (clients[j]->fd == events[i].data.fd) {
+              printf("found match\n");
+              im_send_buffer(epollfd, db, clients[j], &(clients[j]->outbuffer),
                              events + i);
+              printf("aft\n");
               int ct = (int)time(NULL);
-              if (clients[i]->user != NULL &&
-                  clients[i]->user->last_active + db->login_timeout > ct)
-                im_send_buffer(epollfd, db, clients[i],
-                               &(clients[i]->user->buffer), events + i);
+              if (clients[j]->user != NULL &&
+                  clients[j]->user->last_active + db->login_timeout > ct)
+                im_send_buffer(epollfd, db, clients[j],
+                               &(clients[j]->user->buffer), events + i);
               break;
             }
           }
