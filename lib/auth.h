@@ -44,7 +44,7 @@ UserDb *buildUserDb(FILE *fd, int block_duration, int login_timeout);
 
 user_t *findUser(UserDb *db, const char *username);
 
-int login(UserDb *db, const char *username, const char *password,
+int login(UserDb *db, int epollfd, const char *username, const char *password,
           user_t **user);
 
 bool hasBlockedUser(user_t *by, user_t *u);

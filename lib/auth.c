@@ -11,6 +11,7 @@
 // do not sort
 #include "auth.h"
 #include "buffer.h"
+#include "proto/IMResponse.pb.h"
 
 trie_user_t *newTrieUserNode() {
   trie_user_t *node = ac_malloc(sizeof(trie_user_t), "user db trie node");
@@ -71,7 +72,7 @@ user_t *findUser(UserDb *db, const char *username) {
 // 2: user blocked
 // 3: wrong password
 // 4: another session is in place
-int login(UserDb *db, const char *username, const char *password,
+int login(UserDb *db, int epollfd, const char *username, const char *password,
           user_t **user) {
   int ct = (int)time(NULL);
   printf("%s\n", username);
@@ -91,6 +92,20 @@ int login(UserDb *db, const char *username, const char *password,
   if (isUserLoggedIn(db, *user)) return 4;
   (*user)->attempts = 0;
   (*user)->last_active = (*user)->last_logged_in = (int)time(NULL);
+
+  // send login message to other online users
+  struct IMResponse *rsp = malloc(sizeof(struct IMResponse));
+  rsp->success = true;
+  rsp->msg.len = asprintf(&(rsp->msg.value), "%s has logged in", username);
+  linked_user_t *curr = db->first;
+  while (curr != NULL) {
+    if (curr->user != NULL && curr->user != *user && isUserLoggedIn(db, curr->user)) {
+      send_response_to_user(db, epollfd, curr->user, rsp);
+    }
+    curr = curr->next;
+  }
+  freeIMResponse(rsp);
+
   return 0;
 }
 
