@@ -3,9 +3,9 @@
 
 #include "achelper/ac_protobuf.h"
 
-#include "clientlib/client.h"
+#include "lib/client.h"
 // do not sort
-#include "clientlib/auth.h"
+#include "lib/auth.h"
 #include "clientlib/command.h"
 #include "proto/IMResponse.pb.h"
 #include "proto/MessageRequest.pb.h"

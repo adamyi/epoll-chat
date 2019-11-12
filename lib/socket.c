@@ -20,7 +20,7 @@
 #include "client.h"
 // do not sort
 #include "auth.h"
-#include "command.h"
+#include "buffer.h"
 #include "socket.h"
 
 #include "proto/IMResponse.pb.h"
@@ -60,13 +60,6 @@ int listen_socket(int portnum) {
   return sockfd;
 }
 
-void init_buffer(im_buffer_t *buffer, size_t size) {
-  buffer->buffer = malloc(size);
-  buffer->buffer_capacity = size;
-  buffer->buffer_end = 0;
-  buffer->buffer_start = 0;
-}
-
 im_client_t *im_connection_accept(int epollfd, int sockfd) {
   im_client_t *client = malloc(sizeof(im_client_t));
   memset(client, 0, sizeof(im_client_t));
@@ -85,14 +78,6 @@ im_client_t *im_connection_accept(int epollfd, int sockfd) {
     fprintf(stderr, "pthread_mutex_init failed");
   }
   return client;
-}
-
-void reset_buffer_start(im_buffer_t *buffer) {
-  if (buffer->buffer_start == 0) return;
-  memcpy(buffer->buffer, buffer->buffer + buffer->buffer_start,
-         buffer->buffer_end - buffer->buffer_start);
-  buffer->buffer_end -= buffer->buffer_start;
-  buffer->buffer_start = 0;
 }
 
 void send_response(im_buffer_t *buffer, struct IMResponse *msg) {
@@ -114,6 +99,7 @@ void send_response(im_buffer_t *buffer, struct IMResponse *msg) {
 
 void send_response_to_client(int epollfd, im_client_t *client,
                              struct IMResponse *msg) {
+  ac_log(AC_LOG_DEBUG, "send_response_to_client");
   send_response(&(client->outbuffer), msg);
   struct epoll_event event;
   event.data.fd = client->fd;
@@ -126,24 +112,29 @@ void send_response_to_client(int epollfd, im_client_t *client,
 
 void send_response_to_user(UserDb *db, int epollfd, user_t *user,
                            struct IMResponse *msg) {
+  printf("send response to user %s\n", msg->msg.value);
   if (user->client != NULL && isUserLoggedIn(db, user)) {
+    printf("send_response_to_client\n");
     send_response_to_client(epollfd, user->client, msg);
   } else {
+    printf("send_response\n");
     send_response(&(user->buffer), msg);
   }
 }
 
 void im_receive_command(int epollfd, UserDb *db, im_client_t *client,
-                        struct epoll_event *event) {
+                        struct epoll_event *event, size_t (*handler)(UserDb *db, int epollfd, im_client_t *client, uint8_t *cmd, size_t len, struct IMResponse **rsp)) {
   reset_buffer_start(&(client->inbuffer));
   size_t nbytes = recv(
       event->data.fd, client->inbuffer.buffer + client->inbuffer.buffer_start,
       client->inbuffer.buffer_capacity - client->inbuffer.buffer_start, 0);
   client->inbuffer.buffer_end += nbytes;
+  // ac_log(AC_LOG_DEBUG, "%s", client->inbuffer.buffer +
+  // client->inbuffer.buffer_start);
   while (client->inbuffer.buffer_start != client->inbuffer.buffer_end) {
     struct IMResponse *rsp = NULL;
-    size_t parsed = parse_response(
-        epollfd, client,
+    size_t parsed = handler(
+        db, epollfd, client,
         client->inbuffer.buffer + client->inbuffer.buffer_start,
         client->inbuffer.buffer_end - client->inbuffer.buffer_start, &rsp);
     if (rsp != NULL) send_response_to_client(epollfd, client, rsp);
@@ -153,11 +144,11 @@ void im_receive_command(int epollfd, UserDb *db, im_client_t *client,
 }
 
 void im_send_buffer(int epollfd, UserDb *db, im_client_t *client,
-                    im_buffer_t *buffer, struct epoll_event *event) {
+                    im_buffer_t *buffer) {
+  printf("im_send_buffer\n");
   size_t len = buffer->buffer_end - buffer->buffer_start;
   if (len > 0) {
     ac_log(AC_LOG_INFO, "to send: %d bytes", len);
-    // ac_log(AC_LOG_DEBUG, "%s", buffer->buffer + buffer->buffer_start);
     int nsent = send(client->fd, buffer->buffer + buffer->buffer_start, len, 0);
     ac_log(AC_LOG_INFO, "sent: %d bytes", nsent);
     if (nsent == -1) {

@@ -3,11 +3,11 @@
 
 #include "achelper/ac_protobuf.h"
 
-#include "serverlib/client.h"
+#include "lib/client.h"
 // do not sort
 #include "proto/BlockRequest.pb.h"
 #include "proto/IMResponse.pb.h"
-#include "serverlib/auth.h"
+#include "lib/auth.h"
 #include "serverlib/command.h"
 
 struct IMResponse *cmd_block_impl(UserDb *db, int epollfd, im_client_t *client,

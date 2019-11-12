@@ -1,8 +1,8 @@
 cc_library(
-  name = "serverlib",
+  name = "lib",
   srcs = glob(["**/*.c"]),
   hdrs = glob(["**/*.h"]),
-  deps = ["//achelper", "//proto", "//lib"],
+  deps = ["//achelper", "//proto"],
   #copts = ["-m32", "-g"],
   # copts = ["-fsanitize=address", "-m32", "-g"],
   #linkopts = ["-lasan"],

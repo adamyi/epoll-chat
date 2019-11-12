@@ -2,7 +2,7 @@ cc_library(
   name = "clientlib",
   srcs = glob(["**/*.c"]),
   hdrs = glob(["**/*.h"]),
-  deps = ["//achelper", "//proto"],
+  deps = ["//achelper", "//proto", "//lib"],
   #copts = ["-m32", "-g"],
   # copts = ["-fsanitize=address", "-m32", "-g"],
   #linkopts = ["-lasan"],

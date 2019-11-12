@@ -5,13 +5,13 @@
 #include <string.h>
 #include "achelper/ac_log.h"
 
-#include "serverlib/client.h"
+#include "lib/client.h"
 
 #include "block.h"
 #include "proto/BlockRequest.pb.h"
 #include "proto/IMResponse.pb.h"
-#include "serverlib/auth.h"
-#include "serverlib/socket.h"
+#include "lib/auth.h"
+#include "lib/socket.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"

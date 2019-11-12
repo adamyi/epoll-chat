@@ -19,11 +19,12 @@
 #include "achelper/ac_memory.h"
 #include "achelper/ac_protobuf.h"
 
-#include "clientlib/client.h"
+#include "lib/client.h"
 // do not sort
-#include "clientlib/auth.h"
+#include "lib/auth.h"
+#include "lib/socket.h"
+
 #include "clientlib/command.h"
-#include "clientlib/socket.h"
 
 #define MAX_EVENTS 16
 #define MAX_CLIENTS 32
@@ -42,7 +43,7 @@ void *input_thread(void *arg) {
     size_t l = strlen(buf);
     buf[--l] = '\0';  // remove ending \n
     ac_log(AC_LOG_DEBUG, "got command: %s (%u)", buf, l);
-    parse_command(epollfd, clients[0], buf, l, NULL);
+    parse_command(epollfd, clients[0], buf, l);
     ac_log(AC_LOG_DEBUG, "after parse");
     struct epoll_event event;
     event.data.fd = clients[0]->fd;
@@ -82,19 +83,19 @@ void *network_thread(void *arg) {
           for (int i = 0; i < nclients; i++) {
             if (clients[i]->fd == events[i].data.fd) {
               printf("received command\n");
-              im_receive_command(epollfd, NULL, clients[i], events + i);
+              im_receive_command(epollfd, NULL, clients[i], events + i, parse_response);
               break;
             }
           }
         }
         if (events[i].events & EPOLLOUT) {
           printf("epollout\n");
-          for (int i = 0; i < nclients; i++) {
-            if (clients[i]->fd == events[i].data.fd) {
-              pthread_mutex_lock(&(clients[i]->lock));
-              im_send_buffer(epollfd, NULL, clients[i],
-                             &(clients[i]->outbuffer), events + i);
-              pthread_mutex_unlock(&(clients[i]->lock));
+          for (int j = 0; j < nclients; j++) {
+            if (clients[j]->fd == events[i].data.fd) {
+              pthread_mutex_lock(&(clients[j]->lock));
+              im_send_buffer(epollfd, NULL, clients[j],
+                             &(clients[j]->outbuffer));
+              pthread_mutex_unlock(&(clients[j]->lock));
               break;
             }
           }

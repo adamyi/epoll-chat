@@ -19,10 +19,12 @@
 #include "achelper/ac_memory.h"
 #include "achelper/ac_protobuf.h"
 
-#include "serverlib/client.h"
+#include "lib/client.h"
 // do not sort
-#include "serverlib/auth.h"
-#include "serverlib/socket.h"
+#include "lib/auth.h"
+#include "lib/socket.h"
+
+#include "serverlib/command.h"
 
 #define MAX_EVENTS 16
 #define MAX_CLIENTS 32
@@ -89,7 +91,7 @@ int main(int argc, char *argv[]) {
           for (int j = 0; j < nclients; j++) {
             if (clients[j]->fd == events[i].data.fd) {
               printf("calling im_receive_command\n");
-              im_receive_command(epollfd, db, clients[j], events + i);
+              im_receive_command(epollfd, db, clients[j], events + i, parse_command);
               break;
             }
           }
@@ -100,14 +102,13 @@ int main(int argc, char *argv[]) {
             printf("checking %d\n", j);
             if (clients[j]->fd == events[i].data.fd) {
               printf("found match\n");
-              im_send_buffer(epollfd, db, clients[j], &(clients[j]->outbuffer),
-                             events + i);
+              im_send_buffer(epollfd, db, clients[j], &(clients[j]->outbuffer));
               printf("aft\n");
               int ct = (int)time(NULL);
               if (clients[j]->user != NULL &&
                   clients[j]->user->last_active + db->login_timeout > ct)
                 im_send_buffer(epollfd, db, clients[j],
-                               &(clients[j]->user->buffer), events + i);
+                               &(clients[j]->user->buffer));
               break;
             }
           }

@@ -5,12 +5,12 @@
 #include <string.h>
 #include "achelper/ac_log.h"
 
-#include "serverlib/client.h"
+#include "lib/client.h"
 
 #include "proto/IMResponse.pb.h"
 #include "proto/UnBlockRequest.pb.h"
-#include "serverlib/auth.h"
-#include "serverlib/socket.h"
+#include "lib/auth.h"
+#include "lib/socket.h"
 #include "unblock.h"
 
 #pragma GCC diagnostic push

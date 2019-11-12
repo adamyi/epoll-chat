@@ -3,9 +3,9 @@
 #include "achelper/ac_log.h"
 #include "achelper/ac_protobuf.h"
 
-#include "client.h"
+#include "lib/client.h"
 // do not sort
-#include "auth.h"
+#include "lib/auth.h"
 
 #include "proto/IMRequest.pb.h"
 #include "proto/IMResponse.pb.h"

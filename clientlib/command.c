@@ -5,9 +5,10 @@
 #include "achelper/ac_log.h"
 #include "achelper/ac_protobuf.h"
 
-#include "client.h"
+#include "lib/client.h"
 // do not sort
-#include "auth.h"
+#include "lib/auth.h"
+#include "lib/socket.h"
 
 #include "proto/IMRequest.pb.h"
 #include "proto/IMResponse.pb.h"
@@ -17,8 +18,6 @@
 #include "clientlib/commands/login.h"
 #include "clientlib/commands/message.h"
 #include "clientlib/commands/unblock.h"
-
-#include "clientlib/socket.h"
 
 const im_command_t *enabled_commands[] = {
     &cmd_login, &cmd_message, &cmd_broadcast, &cmd_block, &cmd_unblock, NULL};
@@ -44,7 +43,7 @@ void send_request(im_buffer_t *buffer, struct IMRequest *msg) {
   buffer->buffer_end += len;
 }
 
-size_t parse_response(int epollfd, im_client_t *client, uint8_t *cmd,
+size_t parse_response(UserDb *db, int epollfd, im_client_t *client, uint8_t *cmd,
                       size_t len, struct IMResponse **rsp) {
   size_t ret = 0;
   ac_protobuf_message_t *msg =
@@ -62,7 +61,7 @@ size_t parse_response(int epollfd, im_client_t *client, uint8_t *cmd,
 }
 
 void parse_command(int epollfd, im_client_t *client, uint8_t *command,
-                   size_t len, struct IMResponse **rsp) {
+                   size_t len) {
   bool hasrun = false;
   for (const im_command_t **cmd = enabled_commands; *cmd != NULL; cmd++) {
     printf("checking %p\n", cmd);

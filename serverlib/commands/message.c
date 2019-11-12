@@ -8,8 +8,8 @@
 #include "message.h"
 #include "proto/IMResponse.pb.h"
 #include "proto/MessageRequest.pb.h"
-#include "serverlib/auth.h"
-#include "serverlib/socket.h"
+#include "lib/auth.h"
+#include "lib/socket.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
