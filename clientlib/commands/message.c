@@ -12,8 +12,8 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
 
-#define LOGIN_SIZE_LIMIT 100
-struct IMRequest *cmd_message_impl(int epollfd, im_client_t *client, char *req) {
+struct IMRequest *cmd_message_impl(int epollfd, im_client_t *client,
+                                   char *req) {
   struct IMRequest *ret = malloc(sizeof(struct IMRequest));
   ret->type = 2;
   char *username = req + 8;
@@ -30,7 +30,7 @@ struct IMRequest *cmd_message_impl(int epollfd, im_client_t *client, char *req) 
     }
     message++;
   }
-  
+
   struct MessageRequest *mreq = malloc(sizeof(struct MessageRequest));
   mreq->username.len = asprintf(&(mreq->username.value), "%s", username);
   mreq->msg.len = asprintf(&(mreq->msg.value), "%s", message);

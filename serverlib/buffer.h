@@ -1,8 +1,8 @@
 #ifndef IM_BUFFER_H__
 #define IM_BUFFER_H__
 
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #define OUT_BUFFER_DEFAULT_SIZE BUFSIZ
 

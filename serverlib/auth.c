@@ -44,7 +44,7 @@ UserDb *buildUserDb(FILE *fd, int block_duration, int login_timeout) {
     newuser_link->next = NULL;
     *next = newuser_link;
     next = &(newuser_link->next);
-    
+
     trie_user_t *curr = db->root;
     for (int i = 0; username[i] != '\0'; i++) {
       if (curr->child[(uint8_t)username[i]] == NULL)

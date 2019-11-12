@@ -12,12 +12,14 @@
 #include "proto/IMRequest.pb.h"
 #include "proto/IMResponse.pb.h"
 
+#include "clientlib/commands/broadcast.h"
 #include "clientlib/commands/login.h"
 #include "clientlib/commands/message.h"
 
 #include "clientlib/socket.h"
 
-const im_command_t *enabled_commands[] = {&cmd_login, &cmd_message, NULL};
+const im_command_t *enabled_commands[] = {&cmd_login, &cmd_message,
+                                          &cmd_broadcast, NULL};
 
 void send_request(im_buffer_t *buffer, struct IMRequest *msg) {
   ac_log(AC_LOG_INFO, "sending response");

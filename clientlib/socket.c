@@ -140,12 +140,15 @@ void im_receive_command(int epollfd, UserDb *db, im_client_t *client,
       event->data.fd, client->inbuffer.buffer + client->inbuffer.buffer_start,
       client->inbuffer.buffer_capacity - client->inbuffer.buffer_start, 0);
   client->inbuffer.buffer_end += nbytes;
-  struct IMResponse *rsp = NULL;
-  client->inbuffer.buffer_start += parse_response(
-      epollfd, client, client->inbuffer.buffer,
-      client->inbuffer.buffer_end - client->inbuffer.buffer_start, &rsp);
-  if (rsp != NULL) {
-    send_response_to_client(epollfd, client, rsp);
+  while (client->inbuffer.buffer_start != client->inbuffer.buffer_end) {
+    struct IMResponse *rsp = NULL;
+    size_t parsed = parse_response(
+        epollfd, client,
+        client->inbuffer.buffer + client->inbuffer.buffer_start,
+        client->inbuffer.buffer_end - client->inbuffer.buffer_start, &rsp);
+    if (rsp != NULL) send_response_to_client(epollfd, client, rsp);
+    if (parsed == 0) break;
+    client->inbuffer.buffer_start += parsed;
   }
 }
 
