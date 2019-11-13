@@ -1,9 +1,6 @@
 cc_binary(
   name = "server",
   srcs = ["server.c"],
-  #copts = ["-m32", "-g"],
-  #linkopts = ["-lasan", "-m32", "-g", "-lpthread"],
-  # linkopts = ["-lasan", "-fsanitize=address", "-lpthread", "-fsanitize=undefined"],
   deps = [
     "//achelper",
     "//serverlib",
@@ -14,8 +11,6 @@ cc_binary(
 cc_binary(
   name = "client",
   srcs = ["client.c"],
-  #copts = ["-fsanitize=address", "-m32", "-g"],
-  #linkopts = ["-lasan", "-m32", "-g", "-lpthread"],
   deps = [
     "//achelper",
     "//clientlib",
