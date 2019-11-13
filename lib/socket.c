@@ -66,6 +66,7 @@ im_client_t *im_connection_accept(int epollfd, int sockfd,
   memset(client, 0, sizeof(im_client_t));
   client->fd = sockfd;
   client->close_callback = NULL;
+  client->addr = clientaddr;
   init_buffer(&(client->outbuffer), OUT_BUFFER_DEFAULT_SIZE);
   init_buffer(&(client->inbuffer), MSG_LIMIT);
 
