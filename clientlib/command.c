@@ -16,11 +16,13 @@
 #include "clientlib/commands/block.h"
 #include "clientlib/commands/broadcast.h"
 #include "clientlib/commands/login.h"
+#include "clientlib/commands/logout.h"
 #include "clientlib/commands/message.h"
 #include "clientlib/commands/unblock.h"
 
 const im_command_t *enabled_commands[] = {
-    &cmd_login, &cmd_message, &cmd_broadcast, &cmd_block, &cmd_unblock, NULL};
+    &cmd_login,  &cmd_message, &cmd_broadcast, &cmd_block, &cmd_unblock,
+    &cmd_logout, NULL};
 
 void send_request(im_buffer_t *buffer, struct IMRequest *msg) {
   ac_log(AC_LOG_INFO, "sending response");
@@ -71,6 +73,7 @@ void parse_command(int epollfd, im_client_t *client, uint8_t *command,
              (*cmd)->prefix);
       hasrun = true;
       struct IMRequest *rsp = (*cmd)->run(epollfd, client, command);
+      printf("aft run\n");
       if (rsp != NULL) {
         pthread_mutex_lock(&(client->lock));
         send_request(&(client->outbuffer), rsp);
@@ -81,4 +84,5 @@ void parse_command(int epollfd, im_client_t *client, uint8_t *command,
     }
   }
   if (!hasrun) ac_log(AC_LOG_ERROR, "not recognized command");
+  printf("aft parse_command\n");
 }

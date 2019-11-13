@@ -14,6 +14,7 @@ typedef struct im_client {
   im_buffer_t outbuffer;
   im_buffer_t inbuffer;
   pthread_mutex_t lock;
+  void (*close_callback)();
 } im_client_t;
 
 #endif

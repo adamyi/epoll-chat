@@ -19,21 +19,17 @@
 struct IMResponse *cmd_block_impl(UserDb *db, int epollfd, im_client_t *client,
                                   struct BlockRequest *req) {
   struct IMResponse *rsp = malloc(sizeof(struct IMResponse));
+  rsp->success = false;
   if (!isUserLoggedIn(db, client->user)) {
-    rsp->success = false;
-    rsp->msg.len = asprintf(&(rsp->msg.value), "You are not logged in",
-                            req->username.value);
+    rsp->msg.len = asprintf(&(rsp->msg.value), "You are not logged in");
   } else {
     user_t *user = findUser(db, (char *)req->username.value);
     if (user == NULL) {
-      rsp->success = false;
       rsp->msg.len = asprintf(&(rsp->msg.value), "%s is not present on server",
                               req->username.value);
     } else if (user == client->user) {
-      rsp->success = false;
       rsp->msg.len = asprintf(&(rsp->msg.value), "cannot block yourself");
     } else if (hasBlockedUser(client->user, user)) {
-      rsp->success = false;
       rsp->msg.len = asprintf(&(rsp->msg.value), "%s is already blocked",
                               req->username.value);
     } else {
@@ -46,7 +42,7 @@ struct IMResponse *cmd_block_impl(UserDb *db, int epollfd, im_client_t *client,
   return rsp;
 }
 
-const im_command_t cmd_block = {.type = 3,
+const im_command_t cmd_block = {.type = 4,
                                 .run = cmd_block_impl,
                                 .parser = parseBlockRequestFromBytes,
                                 .freeer = freeBlockRequest};

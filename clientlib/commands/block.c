@@ -14,7 +14,7 @@
 
 struct IMRequest *cmd_block_impl(int epollfd, im_client_t *client, char *req) {
   struct IMRequest *ret = malloc(sizeof(struct IMRequest));
-  ret->type = 3;
+  ret->type = 4;
   char *username = req + 6;
 
   struct BlockRequest *mreq = malloc(sizeof(struct BlockRequest));
@@ -24,6 +24,5 @@ struct IMRequest *cmd_block_impl(int epollfd, im_client_t *client, char *req) {
   return ret;
 }
 
-const im_command_t cmd_block = {
-    .type = 3, .prefix = "block ", .run = cmd_block_impl};
+const im_command_t cmd_block = {.prefix = "block ", .run = cmd_block_impl};
 #pragma GCC diagnostic pop

@@ -41,4 +41,6 @@ void send_response_to_client(int epollfd, im_client_t *client,
 void send_response_to_user(UserDb *db, int epollfd, user_t *user,
                            struct IMResponse *msg);
 
+void close_socket(int epollfd, UserDb *db, im_client_t *client);
+
 #endif

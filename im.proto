@@ -10,31 +10,41 @@ message IMResponse {
   string msg = 2;
 }
 
+// type 1
 message LoginRequest {
   string username = 1;
   string password = 2;
 }
 
+// type 2
 message MessageRequest {
   bool broadcast = 1;
   string username = 2;
   string msg = 3;
 }
 
+// type 3
 message WhoElseRequest {
   bool limitTime = 1;
   uint32 pastSeconds = 2;
   bool currentlyOnline = 3;
 }
 
+// type 4
 message BlockRequest {
   string username = 1;
 }
 
+// type 5
 message UnBlockRequest {
   string username = 1;
 }
 
+// type 6
+message LogOutRequest {
+}
+
+// type 7
 message GetIPRequest {
   string username = 1;
 }

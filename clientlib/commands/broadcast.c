@@ -27,6 +27,6 @@ struct IMRequest *cmd_broadcast_impl(int epollfd, im_client_t *client,
   return ret;
 }
 
-const im_command_t cmd_broadcast = {
-    .type = 2, .prefix = "broadcast ", .run = cmd_broadcast_impl};
+const im_command_t cmd_broadcast = {.prefix = "broadcast ",
+                                    .run = cmd_broadcast_impl};
 #pragma GCC diagnostic pop

@@ -20,21 +20,17 @@ struct IMResponse *cmd_unblock_impl(UserDb *db, int epollfd,
                                     im_client_t *client,
                                     struct UnBlockRequest *req) {
   struct IMResponse *rsp = malloc(sizeof(struct IMResponse));
+  rsp->success = false;
   if (!isUserLoggedIn(db, client->user)) {
-    rsp->success = false;
-    rsp->msg.len = asprintf(&(rsp->msg.value), "You are not logged in",
-                            req->username.value);
+    rsp->msg.len = asprintf(&(rsp->msg.value), "You are not logged in");
   } else {
     user_t *user = findUser(db, (char *)req->username.value);
     if (user == NULL) {
-      rsp->success = false;
       rsp->msg.len = asprintf(&(rsp->msg.value), "%s is not present on server",
                               req->username.value);
     } else if (user == client->user) {
-      rsp->success = false;
       rsp->msg.len = asprintf(&(rsp->msg.value), "cannot unblock yourself");
     } else if (!hasBlockedUser(client->user, user)) {
-      rsp->success = false;
       rsp->msg.len =
           asprintf(&(rsp->msg.value), "%s is not blocked", req->username.value);
     } else {
@@ -47,7 +43,7 @@ struct IMResponse *cmd_unblock_impl(UserDb *db, int epollfd,
   return rsp;
 }
 
-const im_command_t cmd_unblock = {.type = 4,
+const im_command_t cmd_unblock = {.type = 5,
                                   .run = cmd_unblock_impl,
                                   .parser = parseUnBlockRequestFromBytes,
                                   .freeer = freeUnBlockRequest};

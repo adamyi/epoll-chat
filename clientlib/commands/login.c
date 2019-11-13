@@ -32,6 +32,5 @@ struct IMRequest *cmd_login_impl(int epollfd, im_client_t *client, char *req) {
   return ret;
 }
 
-const im_command_t cmd_login = {
-    .type = 1, .prefix = "login", .run = cmd_login_impl};
+const im_command_t cmd_login = {.prefix = "login", .run = cmd_login_impl};
 #pragma GCC diagnostic pop

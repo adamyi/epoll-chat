@@ -40,6 +40,6 @@ struct IMRequest *cmd_message_impl(int epollfd, im_client_t *client,
   return ret;
 }
 
-const im_command_t cmd_message = {
-    .type = 2, .prefix = "message ", .run = cmd_message_impl};
+const im_command_t cmd_message = {.prefix = "message ",
+                                  .run = cmd_message_impl};
 #pragma GCC diagnostic pop

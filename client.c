@@ -107,6 +107,10 @@ void *network_thread(void *arg) {
   return NULL;
 }
 
+void server_close_connection() {
+  ac_log(AC_LOG_FATAL, "Server has closed connection");
+}
+
 int main(int argc, char *argv[]) {
   setvbuf(stdout, NULL, _IONBF, 0);
 
@@ -151,7 +155,9 @@ int main(int argc, char *argv[]) {
     ac_log(AC_LOG_FATAL, "epoll_ctl EPOLL_CTL_ADD error: %s", strerror(errno));
   }
 
-  clients[nclients++] = im_connection_accept(epollfd, sock);
+  clients[nclients] = im_connection_accept(epollfd, sock);
+  clients[nclients]->close_callback = server_close_connection;
+  nclients++;
 
   pthread_t nt, it;
   pthread_create(&nt, NULL, &network_thread, NULL);

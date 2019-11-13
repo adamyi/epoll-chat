@@ -12,11 +12,12 @@
 
 #include "serverlib/commands/block.h"
 #include "serverlib/commands/login.h"
+#include "serverlib/commands/logout.h"
 #include "serverlib/commands/message.h"
 #include "serverlib/commands/unblock.h"
 
-const im_command_t *enabled_commands[] = {&cmd_login, &cmd_message, &cmd_block,
-                                          &cmd_unblock, NULL};
+const im_command_t *enabled_commands[] = {
+    &cmd_login, &cmd_message, &cmd_block, &cmd_unblock, &cmd_logout, NULL};
 
 size_t parse_command(UserDb *db, int epollfd, im_client_t *client, uint8_t *cmd,
                      size_t len, struct IMResponse **rsp) {
@@ -31,7 +32,7 @@ size_t parse_command(UserDb *db, int epollfd, im_client_t *client, uint8_t *cmd,
 
   ac_protobuf_print_msg(msg);
   bool hasrun = false;
-  for (const im_command_t **cmd = enabled_commands; cmd != NULL; cmd++) {
+  for (const im_command_t **cmd = enabled_commands; *cmd != NULL; cmd++) {
     if ((*cmd)->type == imreq->type) {
       ac_log(AC_LOG_DEBUG, "found implementation for request type %u",
              imreq->type);

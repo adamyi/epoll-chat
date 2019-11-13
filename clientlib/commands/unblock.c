@@ -15,7 +15,7 @@
 struct IMRequest *cmd_unblock_impl(int epollfd, im_client_t *client,
                                    char *req) {
   struct IMRequest *ret = malloc(sizeof(struct IMRequest));
-  ret->type = 4;
+  ret->type = 5;
   char *username = req + 8;
 
   struct UnBlockRequest *mreq = malloc(sizeof(struct UnBlockRequest));
@@ -25,6 +25,6 @@ struct IMRequest *cmd_unblock_impl(int epollfd, im_client_t *client,
   return ret;
 }
 
-const im_command_t cmd_unblock = {
-    .type = 4, .prefix = "unblock ", .run = cmd_unblock_impl};
+const im_command_t cmd_unblock = {.prefix = "unblock ",
+                                  .run = cmd_unblock_impl};
 #pragma GCC diagnostic pop

@@ -8,7 +8,6 @@
 #include "proto/IMResponse.pb.h"
 
 typedef struct im_command {
-  uint32_t type;
   char *prefix;
   struct IMRequest *(*run)(int epollfd, im_client_t *client, char *req);
 } im_command_t;
