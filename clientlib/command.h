@@ -12,9 +12,6 @@ typedef struct im_command {
   struct IMRequest *(*run)(int epollfd, im_client_t *client, char *req);
 } im_command_t;
 
-size_t parse_response(UserDb *db, int epollfd, im_client_t *client,
-                      uint8_t *cmd, size_t len, struct IMResponse **rsp);
-
 void parse_command(int epollfd, im_client_t *client, uint8_t *command,
                    size_t len);
 

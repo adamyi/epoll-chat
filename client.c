@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include <errno.h>
 #include <stdbool.h>
@@ -36,13 +37,29 @@ int nclients = 0;
 int epollfd;
 int masterfd;
 
-void *input_thread(void *arg) {
-  char buf[MAX_COMMAND];
-  while (true) {
-    if (fgets(buf, MAX_COMMAND, stdin) != buf) continue;
-    size_t l = strlen(buf);
-    buf[--l] = '\0';  // remove ending \n
-    ac_log(AC_LOG_DEBUG, "got command: %s (%u)", buf, l);
+bool lastresponse = false;
+pthread_mutex_t loginlock;
+
+size_t parse_response(UserDb *db, int epollfd, im_client_t *client,
+                      uint8_t *cmd, size_t len, struct IMResponse **rsp) {
+  size_t ret = 0;
+  ac_protobuf_message_t *msg =
+      ac_decode_protobuf_msg_with_n_fields(cmd, len, 2, &ret);
+  if (msg == NULL) {
+    ac_log(AC_LOG_ERROR, "protobuf decode failure: invalid protobuf");
+    return 0;
+  }
+  struct IMResponse *imrsp = parseIMResponseFromProtobufMsg(msg);
+  lastresponse = imrsp->success;
+
+  ac_protobuf_print_msg(msg);
+  printf("%s\n", imrsp->msg.value);
+  freeIMResponse(imrsp);
+  return ret;
+}
+
+
+static void got_command(char *buf, size_t l) {
     parse_command(epollfd, clients[0], buf, l);
     ac_log(AC_LOG_DEBUG, "after parse");
     struct epoll_event event;
@@ -52,6 +69,21 @@ void *input_thread(void *arg) {
       fprintf(stderr, "Couldn't listen on output events for socket: %s\n",
               strerror(errno));
     }
+}
+
+void *input_thread(void *arg) {
+  while (true) {
+    pthread_mutex_lock(&loginlock);
+    if (lastresponse) break;
+    got_command("login", 5);
+  }
+  char buf[MAX_COMMAND];
+  while (true) {
+    if (fgets(buf, MAX_COMMAND, stdin) != buf) continue;
+    size_t l = strlen(buf);
+    buf[--l] = '\0';  // remove ending \n
+    ac_log(AC_LOG_DEBUG, "got command: %s (%u)", buf, l);
+    got_command(buf, l);
   }
   return NULL;
 }
@@ -85,6 +117,7 @@ void *network_thread(void *arg) {
               printf("received command\n");
               im_receive_command(epollfd, NULL, clients[i], events + i,
                                  parse_response);
+              pthread_mutex_unlock(&loginlock);
               break;
             }
           }
@@ -160,6 +193,9 @@ int main(int argc, char *argv[]) {
   nclients++;
 
   pthread_t nt, it;
+  if (pthread_mutex_init(&loginlock, NULL) != 0) {
+    ac_log(AC_LOG_FATAL, "cannot lock loginlock");
+  }
   pthread_create(&nt, NULL, &network_thread, NULL);
   pthread_create(&it, NULL, &input_thread, NULL);
   pthread_join(nt, NULL);

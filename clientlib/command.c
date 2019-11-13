@@ -47,23 +47,6 @@ void send_request(im_buffer_t *buffer, struct IMRequest *msg) {
   buffer->buffer_end += len;
 }
 
-size_t parse_response(UserDb *db, int epollfd, im_client_t *client,
-                      uint8_t *cmd, size_t len, struct IMResponse **rsp) {
-  size_t ret = 0;
-  ac_protobuf_message_t *msg =
-      ac_decode_protobuf_msg_with_n_fields(cmd, len, 2, &ret);
-  if (msg == NULL) {
-    ac_log(AC_LOG_ERROR, "protobuf decode failure: invalid protobuf");
-    return 0;
-  }
-  struct IMResponse *imrsp = parseIMResponseFromProtobufMsg(msg);
-
-  ac_protobuf_print_msg(msg);
-  printf("%s\n", imrsp->msg.value);
-  freeIMResponse(imrsp);
-  return ret;
-}
-
 void parse_command(int epollfd, im_client_t *client, uint8_t *command,
                    size_t len) {
   bool hasrun = false;
