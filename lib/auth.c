@@ -99,7 +99,9 @@ int login(UserDb *db, int epollfd, const char *username, const char *password,
   rsp->msg.len = asprintf(&(rsp->msg.value), "%s has logged in", username);
   linked_user_t *curr = db->first;
   while (curr != NULL) {
-    if (curr->user != NULL && curr->user != *user && isUserLoggedIn(db, curr->user)) {
+    if (curr->user != NULL && curr->user != *user &&
+        isUserLoggedIn(db, curr->user) &&
+        (!hasBlockedUser(*user, curr->user))) {
       send_response_to_user(db, epollfd, curr->user, rsp);
     }
     curr = curr->next;
@@ -171,8 +173,31 @@ linked_user_t *loggedInUsersAfterTime(UserDb *db, int threshold,
 
 bool isUserLoggedIn(UserDb *db, user_t *user) {
   if (user == NULL) return false;
+  if (user->client == NULL) return false;
   int ct = (int)time(NULL);
   return user->last_active + db->login_timeout > ct;
+}
+
+void logoutUser(UserDb *db, int epollfd, user_t *user) {
+  if (user == NULL) return;
+  if (user->client == NULL) return;
+  user->client->user = NULL;
+  user->client = NULL;
+
+  // send logout message to other online users
+  struct IMResponse *rsp = malloc(sizeof(struct IMResponse));
+  rsp->success = true;
+  rsp->msg.len =
+      asprintf(&(rsp->msg.value), "%s has logged out", user->username);
+  linked_user_t *curr = db->first;
+  while (curr != NULL) {
+    if (curr->user != NULL && curr->user != user &&
+        isUserLoggedIn(db, curr->user) && (!hasBlockedUser(user, curr->user))) {
+      send_response_to_user(db, epollfd, curr->user, rsp);
+    }
+    curr = curr->next;
+  }
+  freeIMResponse(rsp);
 }
 
 void freeUserTrie(trie_user_t *root) {

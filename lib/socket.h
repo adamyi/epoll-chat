@@ -25,7 +25,10 @@ int listen_socket(int portnum);
 im_client_t *im_connection_accept(int epollfd, int sockfd);
 
 void im_receive_command(int epollfd, UserDb *db, im_client_t *client,
-                        struct epoll_event *event, size_t (*handler)(UserDb *db, int epollfd, im_client_t *client, uint8_t *cmd, size_t len, struct IMResponse **rsp));
+                        struct epoll_event *event,
+                        size_t (*handler)(UserDb *db, int epollfd,
+                                          im_client_t *client, uint8_t *cmd,
+                                          size_t len, struct IMResponse **rsp));
 
 void im_send_buffer(int epollfd, UserDb *db, im_client_t *client,
                     im_buffer_t *buffer);

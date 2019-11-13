@@ -63,6 +63,8 @@ linked_user_t *loggedInUsersAfterTime(UserDb *db, int threshold,
 
 bool isUserLoggedIn(UserDb *db, user_t *user);
 
+void logoutUser(UserDb *db, int epollfd, user_t *user);
+
 void freeUserDb(UserDb *db);
 
 #endif

@@ -91,7 +91,8 @@ int main(int argc, char *argv[]) {
           for (int j = 0; j < nclients; j++) {
             if (clients[j]->fd == events[i].data.fd) {
               printf("calling im_receive_command\n");
-              im_receive_command(epollfd, db, clients[j], events + i, parse_command);
+              im_receive_command(epollfd, db, clients[j], events + i,
+                                 parse_command);
               break;
             }
           }

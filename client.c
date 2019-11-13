@@ -83,7 +83,8 @@ void *network_thread(void *arg) {
           for (int i = 0; i < nclients; i++) {
             if (clients[i]->fd == events[i].data.fd) {
               printf("received command\n");
-              im_receive_command(epollfd, NULL, clients[i], events + i, parse_response);
+              im_receive_command(epollfd, NULL, clients[i], events + i,
+                                 parse_response);
               break;
             }
           }

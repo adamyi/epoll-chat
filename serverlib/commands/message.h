@@ -5,9 +5,9 @@
 
 #include "lib/client.h"
 // do not sort
+#include "lib/auth.h"
 #include "proto/IMResponse.pb.h"
 #include "proto/MessageRequest.pb.h"
-#include "lib/auth.h"
 #include "serverlib/command.h"
 
 struct IMResponse *cmd_message_impl(UserDb *db, int epollfd,

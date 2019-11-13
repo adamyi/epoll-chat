@@ -5,9 +5,9 @@
 
 #include "lib/client.h"
 // do not sort
+#include "lib/auth.h"
 #include "proto/BlockRequest.pb.h"
 #include "proto/IMResponse.pb.h"
-#include "lib/auth.h"
 #include "serverlib/command.h"
 
 struct IMResponse *cmd_block_impl(UserDb *db, int epollfd, im_client_t *client,

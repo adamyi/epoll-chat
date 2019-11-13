@@ -5,8 +5,8 @@
 
 #include "lib/client.h"
 // do not sort
-#include "lib/auth.h"
 #include "clientlib/command.h"
+#include "lib/auth.h"
 #include "proto/IMResponse.pb.h"
 #include "proto/LoginRequest.pb.h"
 

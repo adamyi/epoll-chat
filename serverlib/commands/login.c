@@ -15,8 +15,8 @@ struct IMResponse *cmd_login_impl(UserDb *db, int epollfd, im_client_t *client,
   struct IMResponse *rsp = malloc(sizeof(struct IMResponse));
   rsp->success = false;
   user_t *user = NULL;
-  int res = login(db, epollfd, (char *)req->username.value, (char *)req->password.value,
-                  &user);
+  int res = login(db, epollfd, (char *)req->username.value,
+                  (char *)req->password.value, &user);
   switch (res) {
     case 0:  // success
       ac_log(AC_LOG_INFO, "login success");

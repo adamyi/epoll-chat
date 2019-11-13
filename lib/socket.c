@@ -122,12 +122,28 @@ void send_response_to_user(UserDb *db, int epollfd, user_t *user,
   }
 }
 
-void im_receive_command(int epollfd, UserDb *db, im_client_t *client,
-                        struct epoll_event *event, size_t (*handler)(UserDb *db, int epollfd, im_client_t *client, uint8_t *cmd, size_t len, struct IMResponse **rsp)) {
+void close_socket(int epollfd, UserDb *db, im_client_t *client) {
+  ac_log(AC_LOG_INFO, "closing socket %d", client->fd);
+  logoutUser(db, epollfd, client->user);
+  if (epoll_ctl(epollfd, EPOLL_CTL_DEL, client->fd, NULL) < 0) {
+    ac_log(AC_LOG_ERROR, "error closing socket %d", client->fd);
+  }
+  close(client->fd);
+  return;
+}
+
+void im_receive_command(
+    int epollfd, UserDb *db, im_client_t *client, struct epoll_event *event,
+    size_t (*handler)(UserDb *db, int epollfd, im_client_t *client,
+                      uint8_t *cmd, size_t len, struct IMResponse **rsp)) {
   reset_buffer_start(&(client->inbuffer));
   size_t nbytes = recv(
       event->data.fd, client->inbuffer.buffer + client->inbuffer.buffer_start,
       client->inbuffer.buffer_capacity - client->inbuffer.buffer_start, 0);
+  if (nbytes == 0) {  // disconnect
+    close_socket(epollfd, db, client);
+    return;
+  }
   client->inbuffer.buffer_end += nbytes;
   // ac_log(AC_LOG_DEBUG, "%s", client->inbuffer.buffer +
   // client->inbuffer.buffer_start);

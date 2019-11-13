@@ -8,10 +8,10 @@
 #include "lib/client.h"
 
 #include "block.h"
-#include "proto/BlockRequest.pb.h"
-#include "proto/IMResponse.pb.h"
 #include "lib/auth.h"
 #include "lib/socket.h"
+#include "proto/BlockRequest.pb.h"
+#include "proto/IMResponse.pb.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
