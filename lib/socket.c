@@ -113,7 +113,7 @@ void send_response_to_client(int epollfd, im_client_t *client,
 
 void send_response_to_user(UserDb *db, int epollfd, user_t *user,
                            struct IMResponse *msg) {
-  printf("send response to user %s\n", msg->msg.value);
+  printf("send response to user\n");
   if (user->client != NULL && isUserLoggedIn(db, user)) {
     printf("send_response_to_client\n");
     send_response_to_client(epollfd, user->client, msg);

@@ -4,6 +4,7 @@
 #include "lib/client.h"
 // do not sort
 #include "lib/auth.h"
+#include "lib/response.h"
 
 #include "proto/IMResponse.pb.h"
 
@@ -15,7 +16,7 @@ typedef struct im_command {
   void (*freeer)(void *val);
 } im_command_t;
 
-size_t parse_command(UserDb *db, int epollfd, im_client_t *client, uint8_t *cmd,
+size_t parse_command(UserDb *db, int epollfd, im_client_t *client, uint8_t *cmdstr,
                      size_t len, struct IMResponse **rsp);
 
 extern const im_command_t *enabled_commands[];

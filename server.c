@@ -31,6 +31,7 @@
 
 int main(int argc, char *argv[]) {
   setvbuf(stdout, NULL, _IONBF, 0);
+  setvbuf(stderr, NULL, _IONBF, 0);
   struct im_client *clients[MAX_CLIENTS] = {NULL};
   int nclients = 0;
   if (argc < 4) {

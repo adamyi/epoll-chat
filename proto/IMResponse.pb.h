@@ -9,8 +9,9 @@
 #include "achelper/ac_protobuf.h"
 
 struct IMResponse {
+  uint32_t type;
   bool success;
-  ac_protobuf_string_t msg;
+  ac_protobuf_string_t value;
 };
 
 struct IMResponse *parseIMResponseFromProtobufMsg(ac_protobuf_message_t *msg);

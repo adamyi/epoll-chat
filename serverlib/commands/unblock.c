@@ -10,6 +10,7 @@
 #include "lib/auth.h"
 #include "lib/socket.h"
 #include "proto/IMResponse.pb.h"
+#include "proto/TextResponse.pb.h"
 #include "proto/UnBlockRequest.pb.h"
 #include "unblock.h"
 
@@ -19,8 +20,8 @@
 struct IMResponse *cmd_unblock_impl(UserDb *db, int epollfd,
                                     im_client_t *client,
                                     struct UnBlockRequest *req) {
-  struct IMResponse *rsp = malloc(sizeof(struct IMResponse));
-  rsp->success = false;
+  struct TextResponse *rsp = malloc(sizeof(struct TextResponse));
+  bool success = false;
   if (!isUserLoggedIn(db, client->user)) {
     rsp->msg.len = asprintf(&(rsp->msg.value), "You are not logged in");
   } else {
@@ -35,12 +36,12 @@ struct IMResponse *cmd_unblock_impl(UserDb *db, int epollfd,
           asprintf(&(rsp->msg.value), "%s is not blocked", req->username.value);
     } else {
       unblockUser(client->user, user);
-      rsp->success = true;
+      success = true;
       rsp->msg.len =
           asprintf(&(rsp->msg.value), "%s is unblocked", req->username.value);
     }
   }
-  return rsp;
+  return encodeTextResponseToIMResponseAndFree(rsp, success);
 }
 
 const im_command_t cmd_unblock = {.type = 5,

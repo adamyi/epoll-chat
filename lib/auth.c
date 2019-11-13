@@ -1,8 +1,11 @@
+#define _GNU_SOURCE
+
 #include <memory.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include "achelper/ac_memory.h"
@@ -11,7 +14,11 @@
 // do not sort
 #include "auth.h"
 #include "buffer.h"
+#include "socket.h"
+#include "response.h"
+
 #include "proto/IMResponse.pb.h"
+#include "proto/TextResponse.pb.h"
 
 trie_user_t *newTrieUserNode() {
   trie_user_t *node = ac_malloc(sizeof(trie_user_t), "user db trie node");
@@ -94,9 +101,11 @@ int login(UserDb *db, int epollfd, const char *username, const char *password,
   (*user)->last_active = (*user)->last_logged_in = (int)time(NULL);
 
   // send login message to other online users
-  struct IMResponse *rsp = malloc(sizeof(struct IMResponse));
-  rsp->success = true;
-  rsp->msg.len = asprintf(&(rsp->msg.value), "%s has logged in", username);
+  struct TextResponse *irsp = malloc(sizeof(struct TextResponse));
+  irsp->msg.len = asprintf((char **)&(irsp->msg.value), "%s has logged in", username);
+
+  struct IMResponse *rsp = encodeTextResponseToIMResponseAndFree(irsp, true);
+
   linked_user_t *curr = db->first;
   while (curr != NULL) {
     if (curr->user != NULL && curr->user != *user &&
@@ -185,10 +194,11 @@ void logoutUser(UserDb *db, int epollfd, user_t *user) {
   user->client = NULL;
 
   // send logout message to other online users
-  struct IMResponse *rsp = malloc(sizeof(struct IMResponse));
-  rsp->success = true;
-  rsp->msg.len =
-      asprintf(&(rsp->msg.value), "%s has logged out", user->username);
+  struct TextResponse *irsp = malloc(sizeof(struct TextResponse));
+  irsp->msg.len = asprintf((char **)&(irsp->msg.value), "%s has logged out", user->username);
+
+  struct IMResponse *rsp = encodeTextResponseToIMResponseAndFree(irsp, true);
+
   linked_user_t *curr = db->first;
   while (curr != NULL) {
     if (curr->user != NULL && curr->user != user &&

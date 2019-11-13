@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <poll.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
@@ -27,6 +28,10 @@
 
 #include "clientlib/command.h"
 
+#include "proto/IMResponse.pb.h"
+#include "proto/TextResponse.pb.h"
+#include "proto/ExitResponse.pb.h"
+
 #define MAX_EVENTS 16
 #define MAX_CLIENTS 32
 
@@ -44,7 +49,7 @@ size_t parse_response(UserDb *db, int epollfd, im_client_t *client,
                       uint8_t *cmd, size_t len, struct IMResponse **rsp) {
   size_t ret = 0;
   ac_protobuf_message_t *msg =
-      ac_decode_protobuf_msg_with_n_fields(cmd, len, 2, &ret);
+      ac_decode_protobuf_msg_with_n_fields(cmd, len, 3, &ret);
   if (msg == NULL) {
     ac_log(AC_LOG_ERROR, "protobuf decode failure: invalid protobuf");
     return 0;
@@ -53,14 +58,29 @@ size_t parse_response(UserDb *db, int epollfd, im_client_t *client,
   lastresponse = imrsp->success;
 
   ac_protobuf_print_msg(msg);
-  printf("%s\n", imrsp->msg.value);
+  size_t read = 0;
+  switch (imrsp->type) {
+    case 1:;
+      struct TextResponse *tr = parseTextResponseFromBytes(imrsp->value.value, imrsp->value.len, &read);
+      printf("%s\n", tr->msg.value);
+      freeTextResponse(tr);
+      break;
+    case 2:;
+      struct ExitResponse *er = parseExitResponseFromBytes(imrsp->value.value, imrsp->value.len, &read);
+      printf("%s\n", er->msg.value);
+      freeExitResponse(er);
+      exit(0);
+      break;
+    default:
+    ac_log(AC_LOG_ERROR, "unidentified response type %u", imrsp->type);
+  }
   freeIMResponse(imrsp);
   return ret;
 }
 
 
 static void got_command(char *buf, size_t l) {
-    parse_command(epollfd, clients[0], buf, l);
+    parse_command(epollfd, clients[0], (uint8_t *)buf, l);
     ac_log(AC_LOG_DEBUG, "after parse");
     struct epoll_event event;
     event.data.fd = clients[0]->fd;
@@ -112,10 +132,10 @@ void *network_thread(void *arg) {
         clients[nclients++] = im_connection_accept(epollfd, newsockfd);
       } else {
         if (events[i].events & EPOLLIN) {
-          for (int i = 0; i < nclients; i++) {
-            if (clients[i]->fd == events[i].data.fd) {
+          for (int j = 0; j < nclients; j++) {
+            if (clients[j]->fd == events[i].data.fd) {
               printf("received command\n");
-              im_receive_command(epollfd, NULL, clients[i], events + i,
+              im_receive_command(epollfd, NULL, clients[j], events + i,
                                  parse_response);
               pthread_mutex_unlock(&loginlock);
               break;
@@ -146,6 +166,7 @@ void server_close_connection() {
 
 int main(int argc, char *argv[]) {
   setvbuf(stdout, NULL, _IONBF, 0);
+  setvbuf(stderr, NULL, _IONBF, 0);
 
   if (argc < 3) {
     ac_log(AC_LOG_FATAL, "Usage: ./client server_ip server_port");

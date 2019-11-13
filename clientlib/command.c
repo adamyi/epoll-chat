@@ -53,11 +53,11 @@ void parse_command(int epollfd, im_client_t *client, uint8_t *command,
   for (const im_command_t **cmd = enabled_commands; *cmd != NULL; cmd++) {
     printf("checking %p\n", cmd);
     if (strlen((*cmd)->prefix) <= len &&
-        strncmp((*cmd)->prefix, command, strlen((*cmd)->prefix)) == 0) {
+        strncmp((char *)((*cmd)->prefix), (char *)command, strlen((*cmd)->prefix)) == 0) {
       ac_log(AC_LOG_DEBUG, "found implementation for command %s",
              (*cmd)->prefix);
       hasrun = true;
-      struct IMRequest *rsp = (*cmd)->run(epollfd, client, command);
+      struct IMRequest *rsp = (*cmd)->run(epollfd, client, (char *)command);
       printf("aft run\n");
       if (rsp != NULL) {
         pthread_mutex_lock(&(client->lock));

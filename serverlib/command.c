@@ -6,9 +6,11 @@
 #include "lib/client.h"
 // do not sort
 #include "lib/auth.h"
+#include "lib/response.h"
 
 #include "proto/IMRequest.pb.h"
 #include "proto/IMResponse.pb.h"
+#include "proto/TextResponse.pb.h"
 
 #include "serverlib/commands/block.h"
 #include "serverlib/commands/login.h"
@@ -21,11 +23,11 @@ const im_command_t *enabled_commands[] = {
     &cmd_login,  &cmd_message, &cmd_block, &cmd_unblock,
     &cmd_logout, &cmd_whoelse, NULL};
 
-size_t parse_command(UserDb *db, int epollfd, im_client_t *client, uint8_t *cmd,
+size_t parse_command(UserDb *db, int epollfd, im_client_t *client, uint8_t *cmdstr,
                      size_t len, struct IMResponse **rsp) {
   size_t ret = 0;
   ac_protobuf_message_t *msg =
-      ac_decode_protobuf_msg_with_n_fields(cmd, len, 2, &ret);
+      ac_decode_protobuf_msg_with_n_fields(cmdstr, len, 2, &ret);
   if (msg == NULL) {
     ac_log(AC_LOG_ERROR, "protobuf decode failure: invalid protobuf");
     return 0;

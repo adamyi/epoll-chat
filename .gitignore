@@ -2,3 +2,4 @@ bazel-*
 /server
 /client
 .gdb_history
+.nfs*

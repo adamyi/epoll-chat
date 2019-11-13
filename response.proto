@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+message IMResponse {
+  uint32 type = 1;
+  bool success = 2;
+  bytes value = 3;
+}
+
+// type 1
+
+message TextResponse {
+  string msg = 1;
+}
+
+// type 2
+
+message ExitResponse {
+  string msg = 1;
+}
+
+// type 3
+
+message IPResponse {
+  string username = 1;
+  string ip = 2;
+  uint32 port = 3;
+}

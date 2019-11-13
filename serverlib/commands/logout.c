@@ -14,10 +14,7 @@
 struct IMResponse *cmd_logout_impl(UserDb *db, int epollfd, im_client_t *client,
                                    struct LogOutRequest *req) {
   if (!isUserLoggedIn(db, client->user)) {
-    struct IMResponse *rsp = malloc(sizeof(struct IMResponse));
-    rsp->success = false;
-    rsp->msg.len = asprintf(&(rsp->msg.value), "You are not logged in");
-    return rsp;
+    return encodeTextToIMResponse("You are not logged in", false);
   }
   close_socket(epollfd, db, client);
   return NULL;

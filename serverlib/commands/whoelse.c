@@ -20,26 +20,23 @@
 struct IMResponse *cmd_whoelse_impl(UserDb *db, int epollfd,
                                     im_client_t *client,
                                     struct WhoElseRequest *req) {
-  struct IMResponse *rsp = malloc(sizeof(struct IMResponse));
-  if (!isUserLoggedIn(db, client->user)) {
-    rsp->success = false;
-    rsp->msg.len = asprintf(&(rsp->msg.value), "You are not logged in");
-  } else {
-    rsp->success = true;
-    linked_user_t *userHistory;
-    if (req->limitTime)
-      userHistory = loggedInUsersInPastSeconds(
-          db, req->pastSeconds, req->currentlyOnline, client->user);
-    else
-      userHistory = loggedInUsers(db, req->currentlyOnline, client->user);
-    if (userHistory == NULL)
-      rsp->msg.len =
-          asprintf(&(rsp->msg.value), "No other users other than you");
-    else
-      rsp->msg.len = userLinkedListToString(userHistory, &(rsp->msg.value));
-    freeUserLinkedList(userHistory, false);
-  }
-  return rsp;
+  char *rsp;
+  if (!isUserLoggedIn(db, client->user))
+    return encodeTextToIMResponse("You are not logged in", false);
+  linked_user_t *userHistory;
+  if (req->limitTime)
+    userHistory = loggedInUsersInPastSeconds(
+        db, req->pastSeconds, req->currentlyOnline, client->user);
+  else
+    userHistory = loggedInUsers(db, req->currentlyOnline, client->user);
+  if (userHistory == NULL)
+    return encodeTextToIMResponse("No other users other than you", false);
+  userLinkedListToString(userHistory, &rsp);
+  freeUserLinkedList(userHistory, false);
+
+  struct IMResponse *ret = encodeTextToIMResponse(rsp, true);
+  free(rsp);
+  return ret;
 }
 
 const im_command_t cmd_whoelse = {.type = 3,

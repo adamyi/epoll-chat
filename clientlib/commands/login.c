@@ -19,8 +19,8 @@ struct IMRequest *cmd_login_impl(int epollfd, im_client_t *client, char *req) {
   struct LoginRequest *lreq = malloc(sizeof(struct LoginRequest));
   char *username = malloc(LOGIN_SIZE_LIMIT);
   char *password = malloc(LOGIN_SIZE_LIMIT);
-  lreq->username.value = username;
-  lreq->password.value = password;
+  lreq->username.value = (uint8_t *)username;
+  lreq->password.value = (uint8_t *)password;
   printf("Username: ");
   scanf("%s", username);
   printf("Password: ");
