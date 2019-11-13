@@ -15,9 +15,11 @@
 #include "serverlib/commands/logout.h"
 #include "serverlib/commands/message.h"
 #include "serverlib/commands/unblock.h"
+#include "serverlib/commands/whoelse.h"
 
 const im_command_t *enabled_commands[] = {
-    &cmd_login, &cmd_message, &cmd_block, &cmd_unblock, &cmd_logout, NULL};
+    &cmd_login,  &cmd_message, &cmd_block, &cmd_unblock,
+    &cmd_logout, &cmd_whoelse, NULL};
 
 size_t parse_command(UserDb *db, int epollfd, im_client_t *client, uint8_t *cmd,
                      size_t len, struct IMResponse **rsp) {

@@ -139,26 +139,26 @@ void unblockUser(user_t *by, user_t *u) {
   }
 }
 
-linked_user_t *loggedInUsers(UserDb *db, bool currentlyOnline) {
-  return loggedInUsersAfterTime(db, 0, currentlyOnline);
+linked_user_t *loggedInUsers(UserDb *db, bool currentlyOnline,
+                             user_t *exclude) {
+  return loggedInUsersAfterTime(db, 0, currentlyOnline, exclude);
 }
 
 linked_user_t *loggedInUsersInPastSeconds(UserDb *db, int seconds,
-                                          bool currentlyOnline) {
+                                          bool currentlyOnline,
+                                          user_t *exclude) {
   int threshold = (int)time(NULL) - seconds;
-  return loggedInUsersAfterTime(db, threshold, currentlyOnline);
+  return loggedInUsersAfterTime(db, threshold, currentlyOnline, exclude);
 }
 
 linked_user_t *loggedInUsersAfterTime(UserDb *db, int threshold,
-                                      bool currentlyOnline) {
-  int ct = (int)time(NULL);
-  linked_user_t *ret;
+                                      bool currentlyOnline, user_t *exclude) {
+  linked_user_t *ret = NULL;
   linked_user_t **next = &ret;
   linked_user_t *curr = db->first;
   while (curr != NULL && curr->user != NULL) {
-    if ((curr->user->last_logged_in > threshold) &&
-        ((!currentlyOnline) ||
-         (curr->user->last_active + db->login_timeout > ct))) {
+    if ((curr->user != exclude) && (curr->user->last_active >= threshold) &&
+        ((!currentlyOnline) || isUserLoggedIn(db, curr->user))) {
       linked_user_t *n =
           ac_malloc(sizeof(linked_user_t), "user linked list in loggedInUsers");
       n->user = curr->user;
@@ -200,6 +200,39 @@ void logoutUser(UserDb *db, int epollfd, user_t *user) {
   freeIMResponse(rsp);
 }
 
+size_t userLinkedListToString(linked_user_t *list, char **str) {
+  linked_user_t *curr = list;
+  if (curr == NULL) {
+    *str = NULL;
+    return 0;
+  }
+  size_t ret = 0;
+  while (curr != NULL) {
+    if (curr->user != NULL) {
+      ret += 2 + strlen(curr->user->username);
+    }
+    curr = curr->next;
+  }
+  ret -= 2;
+  *str = malloc(ret + 1);
+  char *nxt = *str;
+  curr = list;
+  while (curr != NULL) {
+    if (curr->user != NULL) {
+      if (nxt != *str) {
+        *(nxt++) = ',';
+        *(nxt++) = ' ';
+      }
+      size_t len = strlen(curr->user->username);
+      memcpy(nxt, curr->user->username, len);
+      nxt += len;
+    }
+    curr = curr->next;
+  }
+  *nxt = '\0';
+  return ret;
+}
+
 void freeUserTrie(trie_user_t *root) {
   for (int i = 0; i < 256; i++) {
     if (root->child[i] != NULL) {
@@ -209,21 +242,24 @@ void freeUserTrie(trie_user_t *root) {
   free(root);
 }
 
-void freeUserDb(UserDb *db) {
-  linked_user_t *curr = db->first;
+void freeUserLinkedList(linked_user_t *first, bool freeUser) {
+  linked_user_t *curr = first;
+  linked_user_t *next = first;
   if (curr != NULL) {
-    linked_user_t *next = curr->next;
     while (curr != NULL) {
-      if (curr->user != NULL) {
+      next = curr->next;
+      if (freeUser && curr->user != NULL) {
         free(curr->user->username);
         free(curr->user->password);
         free(curr->user);
       }
-      free(curr);
       curr = next;
-      next = next->next;
     }
   }
+}
+
+void freeUserDb(UserDb *db) {
+  freeUserLinkedList(db->first, true);
   freeUserTrie(db->root);
   free(db);
 }

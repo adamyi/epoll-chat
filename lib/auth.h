@@ -53,17 +53,24 @@ void blockUser(user_t *by, user_t *u);
 
 void unblockUser(user_t *by, user_t *u);
 
-linked_user_t *loggedInUsers(UserDb *db, bool currentlyOnline);
+linked_user_t *loggedInUsers(UserDb *db, bool currentlyOnline, user_t *exclude);
 
 linked_user_t *loggedInUsersInPastSeconds(UserDb *db, int seconds,
-                                          bool currentlyOnline);
+                                          bool currentlyOnline,
+                                          user_t *exclude);
 
 linked_user_t *loggedInUsersAfterTime(UserDb *db, int threshold,
-                                      bool currentlyOnline);
+                                      bool currentlyOnline, user_t *exclude);
+
+size_t userLinkedListToString(linked_user_t *list, char **str);
 
 bool isUserLoggedIn(UserDb *db, user_t *user);
 
 void logoutUser(UserDb *db, int epollfd, user_t *user);
+
+void freeUserTrie(trie_user_t *root);
+
+void freeUserLinkedList(linked_user_t *first, bool freeUser);
 
 void freeUserDb(UserDb *db);
 

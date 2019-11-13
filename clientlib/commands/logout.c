@@ -16,7 +16,7 @@
 struct IMRequest *cmd_logout_impl(int epollfd, im_client_t *client, char *req) {
   struct IMRequest *ret = malloc(sizeof(struct IMRequest));
   ret->type = 6;
-  struct LoginRequest *lreq = malloc(sizeof(struct LogOutRequest));
+  struct LogOutRequest *lreq = malloc(sizeof(struct LogOutRequest));
   ret->value.value = encodeLogOutRequestToBytes(lreq, &(ret->value.len));
   freeLogOutRequest(lreq);
   return ret;
