@@ -10,6 +10,8 @@
 #define USERNAME_LIMIT 1024
 #define PASSWORD_LIMIT 1024
 
+extern bool IS_SERVER;
+
 typedef struct user {
   char *username;
   char *password;
@@ -40,9 +42,15 @@ typedef struct UserDb {
   int login_timeout;
 } UserDb;
 
+UserDb *newUserDb(int block_duration, int login_timeout);
+
 UserDb *buildUserDb(FILE *fd, int block_duration, int login_timeout);
 
+user_t *addUser(UserDb *db, char *username, char *password);
+
 user_t *findUser(UserDb *db, const char *username);
+
+user_t *findOrAddUser(UserDb *db, const char *username);
 
 int login(UserDb *db, int epollfd, const char *username, const char *password,
           user_t **user);

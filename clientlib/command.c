@@ -18,15 +18,17 @@
 #include "clientlib/commands/login.h"
 #include "clientlib/commands/logout.h"
 #include "clientlib/commands/message.h"
+#include "clientlib/commands/private.h"
 #include "clientlib/commands/startprivate.h"
 #include "clientlib/commands/unblock.h"
 #include "clientlib/commands/whoelse.h"
 #include "clientlib/commands/whoelsesince.h"
 
 const im_command_t *enabled_commands[] = {
-    &cmd_login,        &cmd_message, &cmd_broadcast,    &cmd_block,
-    &cmd_unblock,      &cmd_logout,  &cmd_whoelsesince, &cmd_whoelse,
-    &cmd_startprivate, NULL};
+    &cmd_login,        &cmd_message, &cmd_broadcast,
+    &cmd_block,        &cmd_unblock, &cmd_logout,
+    &cmd_whoelsesince, &cmd_whoelse, &cmd_startprivate,
+    &cmd_private,      NULL};
 
 void send_request(im_buffer_t *buffer, struct IMRequest *msg) {
   ac_log(AC_LOG_INFO, "sending response");

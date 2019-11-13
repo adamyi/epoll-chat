@@ -62,6 +62,7 @@ int listen_socket(int portnum) {
 
 im_client_t *im_connection_accept(int epollfd, int sockfd,
                                   struct sockaddr_in clientaddr) {
+  ac_log(AC_LOG_DEBUG, "new connection, sockfd: %d", sockfd);
   im_client_t *client = malloc(sizeof(im_client_t));
   memset(client, 0, sizeof(im_client_t));
   client->fd = sockfd;

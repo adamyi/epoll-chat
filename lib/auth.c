@@ -27,40 +27,49 @@ trie_user_t *newTrieUserNode() {
   return node;
 }
 
-UserDb *buildUserDb(FILE *fd, int block_duration, int login_timeout) {
+user_t *addUser(UserDb *db, char *username, char *password) {
+  user_t *newuser = ac_malloc(sizeof(user_t), "new user");
+  newuser->username = strdup(username);
+  newuser->password = strdup(password);
+  newuser->last_logged_in = -1;
+  newuser->last_active = -1;
+  newuser->last_blocked = -1;
+  newuser->attempts = 0;
+  newuser->client = NULL;
+  newuser->blocked = NULL;
+  init_buffer(&(newuser->buffer), OUT_BUFFER_DEFAULT_SIZE);
+
+  linked_user_t *newuser_link =
+      ac_malloc(sizeof(linked_user_t), "user user linked list");
+  newuser_link->user = newuser;
+  newuser_link->next = db->first;
+  db->first = newuser_link;
+
+  trie_user_t *curr = db->root;
+  for (int i = 0; username[i] != '\0'; i++) {
+    if (curr->child[(uint8_t)username[i]] == NULL)
+      curr->child[(uint8_t)username[i]] = newTrieUserNode();
+    curr = curr->child[(uint8_t)username[i]];
+  }
+  curr->user = newuser;
+  return newuser;
+}
+
+UserDb *newUserDb(int block_duration, int login_timeout) {
   UserDb *db = ac_malloc(sizeof(UserDb), "user db");
+  db->first = NULL;
   db->root = newTrieUserNode();
   db->block_duration = block_duration;
   db->login_timeout = login_timeout;
+  return db;
+}
+
+UserDb *buildUserDb(FILE *fd, int block_duration, int login_timeout) {
+  UserDb *db = newUserDb(block_duration, login_timeout);
   char username[USERNAME_LIMIT];
   char password[USERNAME_LIMIT];
-  linked_user_t **next = &(db->first);
   while (fscanf(fd, "%s %s", username, password) != EOF) {
-    user_t *newuser = ac_malloc(sizeof(user_t), "new user");
-    newuser->username = strdup(username);
-    newuser->password = strdup(password);
-    newuser->last_logged_in = -1;
-    newuser->last_active = -1;
-    newuser->last_blocked = -1;
-    newuser->attempts = 0;
-    newuser->client = NULL;
-    newuser->blocked = NULL;
-    init_buffer(&(newuser->buffer), OUT_BUFFER_DEFAULT_SIZE);
-
-    linked_user_t *newuser_link =
-        ac_malloc(sizeof(linked_user_t), "user user linked list");
-    newuser_link->user = newuser;
-    newuser_link->next = NULL;
-    *next = newuser_link;
-    next = &(newuser_link->next);
-
-    trie_user_t *curr = db->root;
-    for (int i = 0; username[i] != '\0'; i++) {
-      if (curr->child[(uint8_t)username[i]] == NULL)
-        curr->child[(uint8_t)username[i]] = newTrieUserNode();
-      curr = curr->child[(uint8_t)username[i]];
-    }
-    curr->user = newuser;
+    addUser(db, username, password);
   }
   return db;
 }
@@ -72,6 +81,12 @@ user_t *findUser(UserDb *db, const char *username) {
     curr = curr->child[(uint8_t)username[i]];
   }
   return curr->user;
+}
+
+user_t *findOrAddUser(UserDb *db, const char *username) {
+  user_t *ret = findUser(db, username);
+  if (ret != NULL) return ret;
+  return addUser(db, username, "");
 }
 
 // 0: success
@@ -189,6 +204,7 @@ bool isUserLoggedIn(UserDb *db, user_t *user) {
 }
 
 void logoutUser(UserDb *db, int epollfd, user_t *user) {
+  if (!IS_SERVER) return;
   if (user == NULL) return;
   if (user->client == NULL) return;
   user->client->user = NULL;

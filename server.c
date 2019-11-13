@@ -27,6 +27,8 @@
 #define MAX_EVENTS 16
 #define MAX_CLIENTS 32
 
+bool IS_SERVER = true;
+
 int main(int argc, char *argv[]) {
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);

@@ -29,12 +29,15 @@
 #include "proto/ExitResponse.pb.h"
 #include "proto/GetIPResponse.pb.h"
 #include "proto/IMResponse.pb.h"
+#include "proto/PrivateRegistrationResponse.pb.h"
 #include "proto/TextResponse.pb.h"
 
 #define MAX_EVENTS 16
 #define MAX_CLIENTS 32
 
 #define MAX_COMMAND 32768
+
+bool IS_SERVER = false;
 
 struct im_client *clients[MAX_CLIENTS] = {NULL};
 int nclients = 0;
@@ -45,6 +48,9 @@ uint32_t listen_port = 0;
 
 bool lastresponse = false;
 pthread_mutex_t loginlock;
+
+UserDb *p2pdb;
+char *loggedInUserName;
 
 size_t parse_response(UserDb *db, int epollfd, im_client_t *client,
                       uint8_t *cmd, size_t len, struct IMResponse **rsp) {
@@ -83,7 +89,49 @@ size_t parse_response(UserDb *db, int epollfd, im_client_t *client,
       inet_ntop(AF_INET, &(client_addr.sin_addr), addr, 100);
       ac_log(AC_LOG_DEBUG, "Got private addr %s:%u", addr,
              ntohs(client_addr.sin_port));
+      // open socket
+      int sock;
+      if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        ac_log(AC_LOG_ERROR, "private chat: Could not open socket");
+      }
+
+      // 3 way handshake
+      if (connect(sock, (struct sockaddr *)&client_addr, sizeof(client_addr)) <
+          0) {
+        ac_log(AC_LOG_ERROR, "private chat: Could not connect to server");
+        return 1;
+      }
+      clients[nclients] = im_connection_accept(epollfd, sock, client_addr);
+      printf("Start private messaging with %s\n", gr->username.value);
+      user_t *nu = findOrAddUser(p2pdb, gr->username.value);
+      nu->client = clients[nclients];
+      clients[nclients]->user = nu;
+      nclients++;
       freeGetIPResponse(gr);
+
+      struct IMResponse *rrsp = malloc(sizeof(struct IMResponse));
+      struct PrivateRegistrationResponse *irsp =
+          malloc(sizeof(struct PrivateRegistrationResponse));
+      irsp->username.len =
+          asprintf(&(irsp->username.value), "%s", loggedInUserName);
+      rrsp->type = 4;
+      rrsp->value.value =
+          encodePrivateRegistrationResponseToBytes(irsp, &(rrsp->value.len));
+      rrsp->success = true;
+      freePrivateRegistrationResponse(irsp);
+      send_response_to_client(epollfd, nu->client, rrsp);
+      freeIMResponse(rrsp);
+      break;
+    case 4:;
+      struct PrivateRegistrationResponse *prr =
+          parsePrivateRegistrationResponseFromBytes(imrsp->value.value,
+                                                    imrsp->value.len, &read);
+      user_t *user = findOrAddUser(p2pdb, prr->username.value);
+      printf("%s has started a private messaging session with you\n",
+             prr->username.value);
+      user->client = client;
+      client->user = user;
+      freePrivateRegistrationResponse(prr);
       break;
     default:
       ac_log(AC_LOG_ERROR, "unidentified response type %u", imrsp->type);
@@ -187,6 +235,8 @@ int main(int argc, char *argv[]) {
   }
   char *server_name = argv[1];
   int server_port = atoi(argv[2]);
+
+  p2pdb = newUserDb(0, 0);
 
   struct sockaddr_in server_address;
   memset(&server_address, 0, sizeof(server_address));

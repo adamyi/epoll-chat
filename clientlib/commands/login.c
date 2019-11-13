@@ -27,6 +27,7 @@ struct IMRequest *cmd_login_impl(int epollfd, im_client_t *client, char *req) {
   scanf("%s", password);
   lreq->username.len = strlen(username);
   lreq->password.len = strlen(password);
+  loggedInUserName = strdup(username);
   lreq->port = listen_port;
   ret->value.value = encodeLoginRequestToBytes(lreq, &(ret->value.len));
   freeLoginRequest(lreq);

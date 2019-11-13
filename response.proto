@@ -24,3 +24,9 @@ message GetIPResponse {
   string username = 1;
   bytes addr = 2;
 }
+
+// type 4
+
+message PrivateRegistrationResponse {
+  string username = 1;
+}
