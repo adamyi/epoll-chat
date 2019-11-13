@@ -16,8 +16,8 @@ typedef struct im_command {
   void (*freeer)(void *val);
 } im_command_t;
 
-size_t parse_command(UserDb *db, int epollfd, im_client_t *client, uint8_t *cmdstr,
-                     size_t len, struct IMResponse **rsp);
+size_t parse_command(UserDb *db, int epollfd, im_client_t *client,
+                     uint8_t *cmdstr, size_t len, struct IMResponse **rsp);
 
 extern const im_command_t *enabled_commands[];
 

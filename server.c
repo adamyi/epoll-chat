@@ -1,20 +1,18 @@
 #define _GNU_SOURCE
 
+#include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <poll.h>
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <time.h>
-
+#include <unistd.h>
 #include "achelper/ac_log.h"
 #include "achelper/ac_memory.h"
 #include "achelper/ac_protobuf.h"
@@ -84,7 +82,8 @@ int main(int argc, char *argv[]) {
           continue;
         }
         make_socket_nonblocking(newsockfd);
-        clients[nclients++] = im_connection_accept(epollfd, newsockfd);
+        clients[nclients++] =
+            im_connection_accept(epollfd, newsockfd, client_addr);
         ac_log(AC_LOG_DEBUG, "done - new socket %d", newsockfd);
       } else {
         if (events[i].events & EPOLLIN) {

@@ -60,7 +60,8 @@ int listen_socket(int portnum) {
   return sockfd;
 }
 
-im_client_t *im_connection_accept(int epollfd, int sockfd) {
+im_client_t *im_connection_accept(int epollfd, int sockfd,
+                                  struct sockaddr_in clientaddr) {
   im_client_t *client = malloc(sizeof(im_client_t));
   memset(client, 0, sizeof(im_client_t));
   client->fd = sockfd;

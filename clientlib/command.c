@@ -18,13 +18,15 @@
 #include "clientlib/commands/login.h"
 #include "clientlib/commands/logout.h"
 #include "clientlib/commands/message.h"
+#include "clientlib/commands/startprivate.h"
 #include "clientlib/commands/unblock.h"
 #include "clientlib/commands/whoelse.h"
 #include "clientlib/commands/whoelsesince.h"
 
 const im_command_t *enabled_commands[] = {
-    &cmd_login,  &cmd_message,      &cmd_broadcast, &cmd_block, &cmd_unblock,
-    &cmd_logout, &cmd_whoelsesince, &cmd_whoelse,   NULL};
+    &cmd_login,        &cmd_message, &cmd_broadcast,    &cmd_block,
+    &cmd_unblock,      &cmd_logout,  &cmd_whoelsesince, &cmd_whoelse,
+    &cmd_startprivate, NULL};
 
 void send_request(im_buffer_t *buffer, struct IMRequest *msg) {
   ac_log(AC_LOG_INFO, "sending response");
@@ -53,7 +55,8 @@ void parse_command(int epollfd, im_client_t *client, uint8_t *command,
   for (const im_command_t **cmd = enabled_commands; *cmd != NULL; cmd++) {
     printf("checking %p\n", cmd);
     if (strlen((*cmd)->prefix) <= len &&
-        strncmp((char *)((*cmd)->prefix), (char *)command, strlen((*cmd)->prefix)) == 0) {
+        strncmp((char *)((*cmd)->prefix), (char *)command,
+                strlen((*cmd)->prefix)) == 0) {
       ac_log(AC_LOG_DEBUG, "found implementation for command %s",
              (*cmd)->prefix);
       hasrun = true;

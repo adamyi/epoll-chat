@@ -21,11 +21,14 @@ struct LoginRequest *parseLoginRequestFromProtobufMsg(ac_protobuf_message_t *msg
   memcpy(ret->password.value, password_f->value, password_f->len);
   ret->password.value[password_f->len] = 0;
   ret->password.len = password_f->len;
+  ac_protobuf_field_t *port_f = ac_find_protobuf_field_in_msg(msg, 3);
+  ret->port = *(uint32_t *)(port_f->value);
   return ret;
 }
 
 struct LoginRequest *parseLoginRequestFromBytes(uint8_t *bytes, size_t len, size_t *read) {
   ac_protobuf_message_t *msg = ac_decode_protobuf_msg(bytes, len, read);
+  ac_protobuf_print_msg(msg);
   struct LoginRequest *ret = parseLoginRequestFromProtobufMsg(msg);
   ac_protobuf_free_msg(msg);
   return ret;
@@ -44,12 +47,18 @@ ac_protobuf_message_t *encodeLoginRequestToProtobufMsg(struct LoginRequest *msg)
   ac_protobuf_field_t *password_f = malloc(sizeof(ac_protobuf_field_t));
   password_f->id = 2;
   username_f->next = password_f;
-  password_f->next = NULL;
   password_f->wiretype = 2;
   password_f->len = msg->password.len;
   password_f->value = malloc(password_f->len + 1);
   memcpy(password_f->value, msg->password.value, password_f->len);
   *(uint8_t *)(password_f->value + password_f->len) = 0;
+  ac_protobuf_field_t *port_f = malloc(sizeof(ac_protobuf_field_t));
+  port_f->id = 3;
+  password_f->next = port_f;
+  port_f->next = NULL;
+  port_f->wiretype = 0;
+  port_f->value = malloc(8);
+  *(uint64_t *)(port_f->value) = (uint64_t)(msg->port);
   return ret;
 }
 

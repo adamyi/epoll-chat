@@ -14,8 +14,8 @@
 // do not sort
 #include "auth.h"
 #include "buffer.h"
-#include "socket.h"
 #include "response.h"
+#include "socket.h"
 
 #include "proto/IMResponse.pb.h"
 #include "proto/TextResponse.pb.h"
@@ -102,7 +102,8 @@ int login(UserDb *db, int epollfd, const char *username, const char *password,
 
   // send login message to other online users
   struct TextResponse *irsp = malloc(sizeof(struct TextResponse));
-  irsp->msg.len = asprintf((char **)&(irsp->msg.value), "%s has logged in", username);
+  irsp->msg.len =
+      asprintf((char **)&(irsp->msg.value), "%s has logged in", username);
 
   struct IMResponse *rsp = encodeTextResponseToIMResponseAndFree(irsp, true);
 
@@ -195,7 +196,8 @@ void logoutUser(UserDb *db, int epollfd, user_t *user) {
 
   // send logout message to other online users
   struct TextResponse *irsp = malloc(sizeof(struct TextResponse));
-  irsp->msg.len = asprintf((char **)&(irsp->msg.value), "%s has logged out", user->username);
+  irsp->msg.len = asprintf((char **)&(irsp->msg.value), "%s has logged out",
+                           user->username);
 
   struct IMResponse *rsp = encodeTextResponseToIMResponseAndFree(irsp, true);
 

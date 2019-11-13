@@ -14,4 +14,6 @@ struct IMRequest *cmd_login_impl(int epollfd, im_client_t *client, char *req);
 
 extern const im_command_t cmd_login;
 
+extern uint32_t listen_port;
+
 #endif

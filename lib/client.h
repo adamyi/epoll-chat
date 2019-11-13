@@ -1,7 +1,9 @@
 #ifndef IM_CLIENT_H_
 #define IM_CLIENT_H_
 
+#include <netinet/in.h>
 #include <pthread.h>
+#include <sys/socket.h>
 
 #include "auth.h"
 
@@ -15,6 +17,7 @@ typedef struct im_client {
   im_buffer_t inbuffer;
   pthread_mutex_t lock;
   void (*close_callback)();
+  struct sockaddr_in addr;
 } im_client_t;
 
 #endif

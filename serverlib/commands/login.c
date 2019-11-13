@@ -1,13 +1,14 @@
 #define _GNU_SOURCE
 
+#include <arpa/inet.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include "achelper/ac_log.h"
 
 #include "login.h"
 #include "proto/IMResponse.pb.h"
-#include "proto/TextResponse.pb.h"
 #include "proto/LoginRequest.pb.h"
+#include "proto/TextResponse.pb.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
@@ -23,14 +24,17 @@ struct IMResponse *cmd_login_impl(UserDb *db, int epollfd, im_client_t *client,
       ac_log(AC_LOG_INFO, "login success");
       client->user = user;
       user->client = client;
+      client->addr.sin_port = htons(req->port);
       struct TextResponse *irsp = malloc(sizeof(struct TextResponse));
-      irsp->msg.len = asprintf(&(irsp->msg.value), "Welcome %s!", user->username);
+      irsp->msg.len =
+          asprintf(&(irsp->msg.value), "Welcome %s!", user->username);
       return encodeTextResponseToIMResponseAndFree(irsp, true);
     case 1:  // user not found
     case 3:  // wrong password
       return encodeTextToIMResponse("username or password is wrong", false);
     case 2:  // user blocked
-      return encodeExitTextToIMResponse("you are blocked! try again later", false);
+      return encodeExitTextToIMResponse("you are blocked! try again later",
+                                        false);
     case 4:  // another session in place
       return encodeExitTextToIMResponse("another session is in place", false);
   }

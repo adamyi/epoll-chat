@@ -11,6 +11,7 @@
 struct LoginRequest {
   ac_protobuf_string_t username;
   ac_protobuf_string_t password;
+  uint32_t port;
 };
 
 struct LoginRequest *parseLoginRequestFromProtobufMsg(ac_protobuf_message_t *msg);

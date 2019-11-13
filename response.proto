@@ -20,8 +20,7 @@ message ExitResponse {
 
 // type 3
 
-message IPResponse {
+message GetIPResponse {
   string username = 1;
-  string ip = 2;
-  uint32 port = 3;
+  bytes addr = 2;
 }

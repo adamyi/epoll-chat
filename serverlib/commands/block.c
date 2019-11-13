@@ -26,13 +26,14 @@ struct IMResponse *cmd_block_impl(UserDb *db, int epollfd, im_client_t *client,
   } else {
     user_t *user = findUser(db, (char *)req->username.value);
     if (user == NULL) {
-      irsp->msg.len = asprintf(&(irsp->msg.value), "%s is not present on server",
-                              req->username.value);
+      irsp->msg.len =
+          asprintf(&(irsp->msg.value), "%s is not present on server",
+                   req->username.value);
     } else if (user == client->user) {
       irsp->msg.len = asprintf(&(irsp->msg.value), "cannot block yourself");
     } else if (hasBlockedUser(client->user, user)) {
       irsp->msg.len = asprintf(&(irsp->msg.value), "%s is already blocked",
-                              req->username.value);
+                               req->username.value);
     } else {
       blockUser(client->user, user);
       success = true;

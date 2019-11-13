@@ -22,7 +22,8 @@ void make_socket_nonblocking(int sockfd);
 
 int listen_socket(int portnum);
 
-im_client_t *im_connection_accept(int epollfd, int sockfd);
+im_client_t *im_connection_accept(int epollfd, int sockfd,
+                                  struct sockaddr_in clientaddr);
 
 void im_receive_command(int epollfd, UserDb *db, im_client_t *client,
                         struct epoll_event *event,
