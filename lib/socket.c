@@ -199,11 +199,17 @@ void im_send_buffer(int epollfd, UserDb *db, im_client_t *client,
     reset_buffer_start(buffer);
 }
 
+void free_client(im_client_t *client) {
+  free(client->inbuffer.buffer);
+  free(client->outbuffer.buffer);
+  free(client);
+}
+
 int pick_client(struct im_client *clients[], int sockfd, int *nclients,
                 bool createNew) {
   for (int i = 0; i < *nclients; i++) {
     if (clients[i]->fd == sockfd) {
-      if (createNew) free(clients[i]);
+      if (createNew) free_client(clients[i]);
       return i;
     }
   }
