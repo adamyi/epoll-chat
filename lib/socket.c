@@ -105,6 +105,7 @@ void send_response(im_buffer_t *buffer, struct IMResponse *msg) {
 void send_response_to_client(int epollfd, im_client_t *client,
                              struct IMResponse *msg) {
   ac_log(AC_LOG_DEBUG, "send_response_to_client");
+  pthread_mutex_lock(&(client->lock));
   send_response(&(client->outbuffer), msg);
   struct epoll_event event;
   event.data.fd = client->fd;
@@ -115,6 +116,7 @@ void send_response_to_client(int epollfd, im_client_t *client,
   }
   ac_log(AC_LOG_DEBUG, "listening on EPOLLIN and EPOLLOUT for %d",
          event.data.fd);
+  pthread_mutex_unlock(&(client->lock));
 }
 
 void send_response_to_user(UserDb *db, int epollfd, user_t *user,
