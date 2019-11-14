@@ -109,6 +109,7 @@ void *network_thread(void *arg) {
           printf("checking %d\n", j);
           if (clients[j]->fd == events[i].data.fd) {
             printf("found match\n");
+            pthread_mutex_lock(&(clients[j]->lock));
             im_send_buffer(epollfd, db, clients[j], &(clients[j]->outbuffer));
             printf("aft\n");
             int ct = (int)time(NULL);
@@ -116,6 +117,7 @@ void *network_thread(void *arg) {
                 clients[j]->user->last_active + db->login_timeout > ct)
               im_send_buffer(epollfd, db, clients[j],
                              &(clients[j]->user->buffer));
+            pthread_mutex_unlock(&(clients[j]->lock));
             break;
           }
         }

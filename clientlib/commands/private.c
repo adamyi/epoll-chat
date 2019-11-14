@@ -35,14 +35,8 @@ struct IMRequest *cmd_private_impl(int epollfd, im_client_t *client,
   }
 
   user_t *user = findUser(p2pdb, username);
-  if (user == NULL || user->client == NULL) {
-    ac_log(AC_LOG_ERROR, "Private messaging with %s has not been enabled",
-           username);
-    return NULL;
-  }
   im_client_t *uclient = user->client;
-  pthread_mutex_lock(&(uclient->lock));
-  if (uclient == NULL) {
+  if (user == NULL || uclient == NULL) {
     ac_log(AC_LOG_ERROR, "Private messaging with %s has not been enabled",
            username);
     return NULL;
@@ -53,7 +47,6 @@ struct IMRequest *cmd_private_impl(int epollfd, im_client_t *client,
   ac_log(AC_LOG_DEBUG, "sending: %s", msg);
   struct IMResponse *rsp = encodeTextToIMResponse(msg, true);
   send_response_to_client(epollfd, user->client, rsp);
-  pthread_mutex_unlock(&(uclient->lock));
   free(msg);
   freeIMResponse(rsp);
 
