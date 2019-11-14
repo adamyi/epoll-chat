@@ -39,7 +39,8 @@ struct IMResponse *cmd_message_impl(UserDb *db, int epollfd,
     linked_user_t *curr = db->first;
     bool success = true;
     while (curr != NULL) {
-      if (curr->user != NULL && curr->user != client->user) {
+      if (curr->user != NULL && curr->user != client->user &&
+          isUserLoggedIn(db, curr->user)) {
         success &= sendMessage(db, epollfd, curr->user, client->user,
                                (char *)req->msg.value);
       }
