@@ -44,4 +44,7 @@ void send_response_to_user(UserDb *db, int epollfd, user_t *user,
 
 void close_socket(int epollfd, UserDb *db, im_client_t *client);
 
+int pick_client(struct im_client *clients[], int sockfd, int *nclients,
+                bool createNew);
+
 #endif

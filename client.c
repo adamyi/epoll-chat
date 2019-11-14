@@ -48,11 +48,22 @@ uint32_t listen_port = 0;
 
 bool lastresponse = false;
 pthread_mutex_t loginlock;
+pthread_mutex_t clientnumlock;
 
 UserDb *p2pdb;
 char *loggedInUserName;
 
-size_t parse_response(UserDb *db, int epollfd, im_client_t *client,
+void server_close_connection(im_client_t *client) {
+  ac_log(AC_LOG_FATAL, "Server has closed connection");
+}
+
+void pm_close_connection(im_client_t *client) {
+  if (client->user != NULL)
+    printf("%s has ended private messaging session with you.\n",
+           client->user->username);
+}
+
+size_t parse_response(UserDb *db, int lepollfd, im_client_t *client,
                       uint8_t *cmd, size_t len, struct IMResponse **rsp) {
   size_t ret = 0;
   ac_protobuf_message_t *msg =
@@ -99,38 +110,43 @@ size_t parse_response(UserDb *db, int epollfd, im_client_t *client,
       if (connect(sock, (struct sockaddr *)&client_addr, sizeof(client_addr)) <
           0) {
         ac_log(AC_LOG_ERROR, "private chat: Could not connect to server");
-        return 1;
+        break;
       }
-      clients[nclients] = im_connection_accept(epollfd, sock, client_addr);
+      pthread_mutex_lock(&clientnumlock);
+      int client_idx = pick_client(clients, sock, &nclients, true);
+      clients[client_idx] = im_connection_accept(lepollfd, sock, client_addr);
       printf("Start private messaging with %s\n", gr->username.value);
-      user_t *nu = findOrAddUser(p2pdb, gr->username.value);
-      nu->client = clients[nclients];
-      clients[nclients]->user = nu;
-      nclients++;
+      user_t *nu = findOrAddUser(p2pdb, (char *)gr->username.value);
+      printf("user %p\n", nu);
+      nu->client = clients[client_idx];
+      clients[client_idx]->user = nu;
+      clients[client_idx]->close_prehook = pm_close_connection;
       freeGetIPResponse(gr);
+      pthread_mutex_unlock(&clientnumlock);
 
       struct IMResponse *rrsp = malloc(sizeof(struct IMResponse));
       struct PrivateRegistrationResponse *irsp =
           malloc(sizeof(struct PrivateRegistrationResponse));
       irsp->username.len =
-          asprintf(&(irsp->username.value), "%s", loggedInUserName);
+          asprintf((char **)&(irsp->username.value), "%s", loggedInUserName);
       rrsp->type = 4;
       rrsp->value.value =
           encodePrivateRegistrationResponseToBytes(irsp, &(rrsp->value.len));
       rrsp->success = true;
       freePrivateRegistrationResponse(irsp);
-      send_response_to_client(epollfd, nu->client, rrsp);
+      send_response_to_client(lepollfd, nu->client, rrsp);
       freeIMResponse(rrsp);
       break;
     case 4:;
       struct PrivateRegistrationResponse *prr =
           parsePrivateRegistrationResponseFromBytes(imrsp->value.value,
                                                     imrsp->value.len, &read);
-      user_t *user = findOrAddUser(p2pdb, prr->username.value);
+      user_t *user = findOrAddUser(p2pdb, (char *)prr->username.value);
       printf("%s has started a private messaging session with you\n",
              prr->username.value);
       user->client = client;
       client->user = user;
+      client->close_prehook = pm_close_connection;
       freePrivateRegistrationResponse(prr);
       break;
     default:
@@ -176,6 +192,7 @@ void *network_thread(void *arg) {
 
   while (true) {
     int N = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+    ac_log(AC_LOG_INFO, "epoll: %d", N);
     for (int i = 0; i < N; i++) {
       if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
         fprintf(stderr, "disconnect\n");
@@ -190,40 +207,47 @@ void *network_thread(void *arg) {
           continue;
         }
         make_socket_nonblocking(newsockfd);
-        clients[nclients++] =
+        pthread_mutex_lock(&clientnumlock);
+        clients[pick_client(clients, newsockfd, &nclients, true)] =
             im_connection_accept(epollfd, newsockfd, client_addr);
+        pthread_mutex_unlock(&clientnumlock);
       } else {
         if (events[i].events & EPOLLIN) {
-          for (int j = 0; j < nclients; j++) {
-            if (clients[j]->fd == events[i].data.fd) {
-              printf("received command\n");
-              im_receive_command(epollfd, NULL, clients[j], events + i,
-                                 parse_response);
-              pthread_mutex_unlock(&loginlock);
-              break;
-            }
+          pthread_mutex_lock(&clientnumlock);
+          int j = pick_client(clients, events[i].data.fd, &nclients, false);
+          pthread_mutex_unlock(&clientnumlock);
+          if (j < 0) {
+            ac_log(AC_LOG_ERROR, "couldn't find im_client for fd %d",
+                   events[i].data.fd);
+            break;
           }
+          printf("received command\n");
+          im_receive_command(epollfd, NULL, clients[j], events + i,
+                             parse_response);
+          pthread_mutex_unlock(&loginlock);
+          break;
         }
         if (events[i].events & EPOLLOUT) {
           printf("epollout\n");
-          for (int j = 0; j < nclients; j++) {
-            if (clients[j]->fd == events[i].data.fd) {
-              pthread_mutex_lock(&(clients[j]->lock));
-              im_send_buffer(epollfd, NULL, clients[j],
-                             &(clients[j]->outbuffer));
-              pthread_mutex_unlock(&(clients[j]->lock));
-              break;
-            }
+          pthread_mutex_lock(&clientnumlock);
+          int j = pick_client(clients, events[i].data.fd, &nclients, false);
+          pthread_mutex_unlock(&clientnumlock);
+          if (j < 0) {
+            ac_log(AC_LOG_ERROR, "couldn't find im_client for fd %d",
+                   events[i].data.fd);
+            break;
+          }
+          if (clients[j]->fd == events[i].data.fd) {
+            pthread_mutex_lock(&(clients[j]->lock));
+            im_send_buffer(epollfd, NULL, clients[j], &(clients[j]->outbuffer));
+            pthread_mutex_unlock(&(clients[j]->lock));
+            break;
           }
         }
       }
     }
   }
   return NULL;
-}
-
-void server_close_connection() {
-  ac_log(AC_LOG_FATAL, "Server has closed connection");
 }
 
 int main(int argc, char *argv[]) {
@@ -287,7 +311,10 @@ int main(int argc, char *argv[]) {
 
   pthread_t nt, it;
   if (pthread_mutex_init(&loginlock, NULL) != 0) {
-    ac_log(AC_LOG_FATAL, "cannot lock loginlock");
+    ac_log(AC_LOG_FATAL, "cannot init loginlock");
+  }
+  if (pthread_mutex_init(&clientnumlock, NULL) != 0) {
+    ac_log(AC_LOG_FATAL, "cannot init clientnumlock");
   }
   pthread_create(&nt, NULL, &network_thread, NULL);
   pthread_create(&it, NULL, &input_thread, NULL);

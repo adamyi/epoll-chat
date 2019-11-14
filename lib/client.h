@@ -16,7 +16,8 @@ typedef struct im_client {
   im_buffer_t outbuffer;
   im_buffer_t inbuffer;
   pthread_mutex_t lock;
-  void (*close_callback)();
+  void (*close_callback)(struct im_client *client);
+  void (*close_prehook)(struct im_client *client);
   struct sockaddr_in addr;
 } im_client_t;
 

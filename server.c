@@ -84,36 +84,44 @@ int main(int argc, char *argv[]) {
           continue;
         }
         make_socket_nonblocking(newsockfd);
-        clients[nclients++] =
+        clients[pick_client(clients, newsockfd, &nclients, true)] =
             im_connection_accept(epollfd, newsockfd, client_addr);
         ac_log(AC_LOG_DEBUG, "done - new socket %d", newsockfd);
       } else {
         if (events[i].events & EPOLLIN) {
           printf("epollin\n");
-          for (int j = 0; j < nclients; j++) {
-            if (clients[j]->fd == events[i].data.fd) {
-              printf("calling im_receive_command\n");
-              im_receive_command(epollfd, db, clients[j], events + i,
-                                 parse_command);
-              break;
-            }
+          int j = pick_client(clients, events[i].data.fd, &nclients, false);
+          if (j < 0) {
+            ac_log(AC_LOG_ERROR, "couldn't find im_client for fd %d",
+                   events[i].data.fd);
+            break;
+          }
+          if (clients[j]->fd == events[i].data.fd) {
+            printf("calling im_receive_command\n");
+            im_receive_command(epollfd, db, clients[j], events + i,
+                               parse_command);
+            break;
           }
         }
         if (events[i].events & EPOLLOUT) {
           printf("epollout\n");
-          for (int j = 0; j < nclients; j++) {
-            printf("checking %d\n", j);
-            if (clients[j]->fd == events[i].data.fd) {
-              printf("found match\n");
-              im_send_buffer(epollfd, db, clients[j], &(clients[j]->outbuffer));
-              printf("aft\n");
-              int ct = (int)time(NULL);
-              if (clients[j]->user != NULL &&
-                  clients[j]->user->last_active + db->login_timeout > ct)
-                im_send_buffer(epollfd, db, clients[j],
-                               &(clients[j]->user->buffer));
-              break;
-            }
+          int j = pick_client(clients, events[i].data.fd, &nclients, false);
+          if (j < 0) {
+            ac_log(AC_LOG_ERROR, "couldn't find im_client for fd %d",
+                   events[i].data.fd);
+            break;
+          }
+          printf("checking %d\n", j);
+          if (clients[j]->fd == events[i].data.fd) {
+            printf("found match\n");
+            im_send_buffer(epollfd, db, clients[j], &(clients[j]->outbuffer));
+            printf("aft\n");
+            int ct = (int)time(NULL);
+            if (clients[j]->user != NULL &&
+                clients[j]->user->last_active + db->login_timeout > ct)
+              im_send_buffer(epollfd, db, clients[j],
+                             &(clients[j]->user->buffer));
+            break;
           }
         }
       }

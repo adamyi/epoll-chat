@@ -27,7 +27,7 @@ trie_user_t *newTrieUserNode() {
   return node;
 }
 
-user_t *addUser(UserDb *db, char *username, char *password) {
+user_t *addUser(UserDb *db, const char *username, const char *password) {
   user_t *newuser = ac_malloc(sizeof(user_t), "new user");
   newuser->username = strdup(username);
   newuser->password = strdup(password);
@@ -204,11 +204,12 @@ bool isUserLoggedIn(UserDb *db, user_t *user) {
 }
 
 void logoutUser(UserDb *db, int epollfd, user_t *user) {
-  if (!IS_SERVER) return;
   if (user == NULL) return;
   if (user->client == NULL) return;
   user->client->user = NULL;
   user->client = NULL;
+
+  if (!IS_SERVER) return;
 
   // send logout message to other online users
   struct TextResponse *irsp = malloc(sizeof(struct TextResponse));

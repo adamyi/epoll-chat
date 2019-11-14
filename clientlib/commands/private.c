@@ -19,8 +19,6 @@
 
 struct IMRequest *cmd_private_impl(int epollfd, im_client_t *client,
                                    char *req) {
-  struct IMRequest *ret = malloc(sizeof(struct IMRequest));
-  ret->type = 2;
   char *username = req + 8;
   char *message = username;
   while (1) {
@@ -42,12 +40,20 @@ struct IMRequest *cmd_private_impl(int epollfd, im_client_t *client,
            username);
     return NULL;
   }
+  im_client_t *uclient = user->client;
+  pthread_mutex_lock(&(uclient->lock));
+  if (uclient == NULL) {
+    ac_log(AC_LOG_ERROR, "Private messaging with %s has not been enabled",
+           username);
+    return NULL;
+  }
 
   char *msg;
   asprintf(&msg, "%s (private): %s", loggedInUserName, message);
   ac_log(AC_LOG_DEBUG, "sending: %s", msg);
   struct IMResponse *rsp = encodeTextToIMResponse(msg, true);
   send_response_to_client(epollfd, user->client, rsp);
+  pthread_mutex_unlock(&(uclient->lock));
   free(msg);
   freeIMResponse(rsp);
 

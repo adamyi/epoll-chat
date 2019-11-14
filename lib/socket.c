@@ -67,6 +67,7 @@ im_client_t *im_connection_accept(int epollfd, int sockfd,
   memset(client, 0, sizeof(im_client_t));
   client->fd = sockfd;
   client->close_callback = NULL;
+  client->close_prehook = NULL;
   client->addr = clientaddr;
   init_buffer(&(client->outbuffer), OUT_BUFFER_DEFAULT_SIZE);
   init_buffer(&(client->inbuffer), MSG_LIMIT);
@@ -85,9 +86,9 @@ im_client_t *im_connection_accept(int epollfd, int sockfd,
 }
 
 void send_response(im_buffer_t *buffer, struct IMResponse *msg) {
-  ac_log(AC_LOG_INFO, "sending response");
   size_t len;
   uint8_t *bytes = encodeIMResponseToBytes(msg, &len);
+  ac_log(AC_LOG_INFO, "sending response to buf %p, len: %u", buffer, len);
   if (buffer->buffer_end + len >= buffer->buffer_capacity) {
     reset_buffer_start(buffer);
     if (buffer->buffer_end + len >= buffer->buffer_capacity) {
@@ -112,6 +113,8 @@ void send_response_to_client(int epollfd, im_client_t *client,
     fprintf(stderr, "Couldn't listen on output events for socket: %s\n",
             strerror(errno));
   }
+  ac_log(AC_LOG_DEBUG, "listening on EPOLLIN and EPOLLOUT for %d",
+         event.data.fd);
 }
 
 void send_response_to_user(UserDb *db, int epollfd, user_t *user,
@@ -127,13 +130,17 @@ void send_response_to_user(UserDb *db, int epollfd, user_t *user,
 }
 
 void close_socket(int epollfd, UserDb *db, im_client_t *client) {
+  if (client == NULL) return;
+  pthread_mutex_lock(&(client->lock));
+  if (client->close_prehook != NULL) client->close_prehook(client);
   ac_log(AC_LOG_INFO, "closing socket %d", client->fd);
   logoutUser(db, epollfd, client->user);
   if (epoll_ctl(epollfd, EPOLL_CTL_DEL, client->fd, NULL) < 0) {
     ac_log(AC_LOG_ERROR, "error closing socket %d", client->fd);
   }
   close(client->fd);
-  if (client->close_callback != NULL) client->close_callback();
+  pthread_mutex_unlock(&(client->lock));
+  if (client->close_callback != NULL) client->close_callback(client);
   return;
 }
 
@@ -168,8 +175,8 @@ void im_send_buffer(int epollfd, UserDb *db, im_client_t *client,
                     im_buffer_t *buffer) {
   printf("im_send_buffer\n");
   size_t len = buffer->buffer_end - buffer->buffer_start;
+  ac_log(AC_LOG_INFO, "to send: %d bytes to %p", len, buffer);
   if (len > 0) {
-    ac_log(AC_LOG_INFO, "to send: %d bytes", len);
     int nsent = send(client->fd, buffer->buffer + buffer->buffer_start, len, 0);
     ac_log(AC_LOG_INFO, "sent: %d bytes", nsent);
     if (nsent == -1) {
@@ -190,4 +197,16 @@ void im_send_buffer(int epollfd, UserDb *db, im_client_t *client,
   }
   if ((buffer->buffer_start << 1) >= buffer->buffer_capacity)
     reset_buffer_start(buffer);
+}
+
+int pick_client(struct im_client *clients[], int sockfd, int *nclients,
+                bool createNew) {
+  for (int i = 0; i < *nclients; i++) {
+    if (clients[i]->fd == sockfd) {
+      if (createNew) free(clients[i]);
+      return i;
+    }
+  }
+  if (createNew) return (*nclients)++;
+  return -1;
 }

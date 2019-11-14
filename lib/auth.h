@@ -46,7 +46,7 @@ UserDb *newUserDb(int block_duration, int login_timeout);
 
 UserDb *buildUserDb(FILE *fd, int block_duration, int login_timeout);
 
-user_t *addUser(UserDb *db, char *username, char *password);
+user_t *addUser(UserDb *db, const char *username, const char *password);
 
 user_t *findUser(UserDb *db, const char *username);
 
