@@ -27,7 +27,7 @@
 #include "serverlib/command.h"
 
 #define MAX_EVENTS 16
-#define MAX_CLIENTS 32
+#define MAX_CLIENTS 256
 
 #define LOUGOUT_CHECK_INTERVAL 1
 

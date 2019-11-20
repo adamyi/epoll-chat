@@ -39,7 +39,7 @@
 #include "proto/TextResponse.pb.h"
 
 #define MAX_EVENTS 16
-#define MAX_CLIENTS 32
+#define MAX_CLIENTS 256
 
 #define MAX_COMMAND 32768
 
