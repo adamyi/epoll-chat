@@ -39,7 +39,7 @@ size_t parse_command(UserDb *db, int epollfd, im_client_t *client,
   }
   struct IMRequest *imreq = parseIMRequestFromProtobufMsg(msg);
 
-  ac_protobuf_print_msg(msg);
+  // ac_protobuf_print_msg(msg);
   bool hasrun = false;
   for (const im_command_t **cmd = enabled_commands; *cmd != NULL; cmd++) {
     if ((*cmd)->type == imreq->type) {

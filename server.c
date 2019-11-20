@@ -69,8 +69,13 @@ void *network_thread(void *arg) {
     if (N == -1) break;
     for (int i = 0; i < N; i++) {
       if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
-        fprintf(stderr, "disconnect\n");
-        // TODO: disconnect
+        int j = pick_client(clients, events[i].data.fd, &nclients, false);
+        if (j < 0) {
+          ac_log(AC_LOG_ERROR, "couldn't find im_client for fd %d",
+                 events[i].data.fd);
+          break;
+        }
+        close_socket(epollfd, db, clients[j]);
       } else if (events[i].data.fd == masterfd) {
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
@@ -78,7 +83,7 @@ void *network_thread(void *arg) {
             accept(masterfd, (struct sockaddr *)&client_addr, &client_addr_len);
         ac_log(AC_LOG_DEBUG, "new socket %d", newsockfd);
         if (newsockfd < 0) {
-          fprintf(stderr, "couldn't accept connection\n");
+          ac_log(AC_LOG_ERROR, "couldn't accept connection");
           continue;
         }
         make_socket_nonblocking(newsockfd);
@@ -87,7 +92,7 @@ void *network_thread(void *arg) {
         ac_log(AC_LOG_DEBUG, "done - new socket %d", newsockfd);
       } else {
         if (events[i].events & EPOLLIN) {
-          printf("epollin\n");
+          ac_log(AC_LOG_DEBUG, "epollin");
           int j = pick_client(clients, events[i].data.fd, &nclients, false);
           if (j < 0) {
             ac_log(AC_LOG_ERROR, "couldn't find im_client for fd %d",
@@ -95,26 +100,23 @@ void *network_thread(void *arg) {
             break;
           }
           if (clients[j]->fd == events[i].data.fd) {
-            printf("calling im_receive_command\n");
+            ac_log(AC_LOG_DEBUG, "calling im_receive_command");
             im_receive_command(epollfd, db, clients[j], events + i,
                                parse_command);
             break;
           }
         }
         if (events[i].events & EPOLLOUT) {
-          printf("epollout\n");
+          ac_log(AC_LOG_DEBUG, "epollout");
           int j = pick_client(clients, events[i].data.fd, &nclients, false);
           if (j < 0) {
             ac_log(AC_LOG_ERROR, "couldn't find im_client for fd %d",
                    events[i].data.fd);
             break;
           }
-          printf("checking %d\n", j);
           if (clients[j]->fd == events[i].data.fd) {
-            printf("found match\n");
             pthread_mutex_lock(&(clients[j]->lock));
             im_send_buffer(epollfd, db, clients[j], &(clients[j]->outbuffer));
-            printf("aft\n");
             int ct = (int)time(NULL);
             if (clients[j]->user != NULL &&
                 clients[j]->user->last_active + db->login_timeout > ct)

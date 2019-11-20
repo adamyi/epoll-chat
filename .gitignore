@@ -4,3 +4,5 @@ bazel-*
 /clientdata.*
 .gdb_history
 .nfs*
+/assign.tar
+/report.pdf

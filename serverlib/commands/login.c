@@ -15,10 +15,8 @@
 struct IMResponse *cmd_login_impl(UserDb *db, int epollfd, im_client_t *client,
                                   struct LoginRequest *req) {
   user_t *user = NULL;
-  printf("test\n");
   int res = login(db, epollfd, (char *)(req->username.value),
                   (char *)(req->password.value), &user);
-  printf("test\n");
   switch (res) {
     case 0:  // success
       ac_log(AC_LOG_INFO, "login success");

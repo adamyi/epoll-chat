@@ -70,7 +70,8 @@ linked_user_t *loggedInUsersInPastSeconds(UserDb *db, int seconds,
 linked_user_t *loggedInUsersAfterTime(UserDb *db, int threshold,
                                       bool currentlyOnline, user_t *exclude);
 
-size_t userLinkedListToString(linked_user_t *list, char **str);
+size_t userLinkedListToString(linked_user_t *list, char **str,
+                              const char *separator);
 
 bool isUserLoggedIn(UserDb *db, user_t *user);
 

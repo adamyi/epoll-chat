@@ -31,7 +31,7 @@ struct IMResponse *cmd_whoelse_impl(UserDb *db, int epollfd,
     userHistory = loggedInUsers(db, req->currentlyOnline, client->user);
   if (userHistory == NULL)
     return encodeTextToIMResponse("No other users other than you", false);
-  userLinkedListToString(userHistory, &rsp);
+  userLinkedListToString(userHistory, &rsp, "\n");
   freeUserLinkedList(userHistory, false);
 
   struct IMResponse *ret = encodeTextToIMResponse(rsp, true);

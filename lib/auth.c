@@ -97,10 +97,10 @@ user_t *findOrAddUser(UserDb *db, const char *username) {
 int login(UserDb *db, int epollfd, const char *username, const char *password,
           user_t **user) {
   int ct = (int)time(NULL);
-  printf("%s\n", username);
-  printf("%s\n", password);
+  // printf("%s\n", username);
+  // printf("%s\n", password);
   *user = findUser(db, username);
-  printf("%p %p\n", user, *user);
+  // printf("%p %p\n", user, *user);
   if (*user == NULL) return 1;
   if (ct < (*user)->last_blocked) return 2;
   if (strcmp((*user)->password, password) != 0) {
@@ -229,7 +229,8 @@ void logoutUser(UserDb *db, int epollfd, user_t *user) {
   freeIMResponse(rsp);
 }
 
-size_t userLinkedListToString(linked_user_t *list, char **str) {
+size_t userLinkedListToString(linked_user_t *list, char **str,
+                              const char *separator) {
   linked_user_t *curr = list;
   if (curr == NULL) {
     *str = NULL;
@@ -246,11 +247,13 @@ size_t userLinkedListToString(linked_user_t *list, char **str) {
   *str = malloc(ret + 1);
   char *nxt = *str;
   curr = list;
+  size_t sl = strlen(separator);
   while (curr != NULL) {
     if (curr->user != NULL) {
       if (nxt != *str) {
-        *(nxt++) = ',';
-        *(nxt++) = ' ';
+        for (size_t i = 0; i < sl; i++) {
+          *(nxt++) = separator[i];
+        }
       }
       size_t len = strlen(curr->user->username);
       memcpy(nxt, curr->user->username, len);

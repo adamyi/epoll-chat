@@ -22,9 +22,11 @@ struct IMRequest *cmd_login_impl(int epollfd, im_client_t *client, char *req) {
   lreq->username.value = (uint8_t *)username;
   lreq->password.value = (uint8_t *)password;
   printf("Username: ");
-  scanf("%s", username);
+  fgets(username, LOGIN_SIZE_LIMIT, stdin);
+  username[strlen(username) - 1] = '\0';
   printf("Password: ");
-  scanf("%s", password);
+  fgets(password, LOGIN_SIZE_LIMIT, stdin);
+  password[strlen(password) - 1] = '\0';
   lreq->username.len = strlen(username);
   lreq->password.len = strlen(password);
   loggedInUserName = strdup(username);

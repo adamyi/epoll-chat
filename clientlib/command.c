@@ -39,10 +39,10 @@ void send_request(im_buffer_t *buffer, struct IMRequest *msg) {
   ac_log(AC_LOG_INFO, "sending response");
   size_t len;
   uint8_t *bytes = encodeIMRequestToBytes(msg, &len);
-  for (int i = 0; i < len; i++) {
+  /*for (int i = 0; i < len; i++) {
     printf("%x ", bytes[i]);
   }
-  printf("\n");
+  printf("\n"); */
   if (buffer->buffer_end + len >= buffer->buffer_capacity) {
     reset_buffer_start(buffer);
     if (buffer->buffer_end + len >= buffer->buffer_capacity) {
@@ -58,9 +58,10 @@ void send_request(im_buffer_t *buffer, struct IMRequest *msg) {
 
 void parse_command(int epollfd, im_client_t *client, uint8_t *command,
                    size_t len) {
+  if (len == 0) return;
   bool hasrun = false;
   for (const im_command_t **cmd = enabled_commands; *cmd != NULL; cmd++) {
-    printf("checking %p\n", cmd);
+    // printf("checking %p\n", cmd);
     if (strlen((*cmd)->prefix) <= len &&
         strncmp((char *)((*cmd)->prefix), (char *)command,
                 strlen((*cmd)->prefix)) == 0) {
@@ -68,7 +69,7 @@ void parse_command(int epollfd, im_client_t *client, uint8_t *command,
              (*cmd)->prefix);
       hasrun = true;
       struct IMRequest *rsp = (*cmd)->run(epollfd, client, (char *)command);
-      printf("aft run\n");
+      // printf("aft run\n");
       if (rsp != NULL) {
         pthread_mutex_lock(&(client->lock));
         send_request(&(client->outbuffer), rsp);
@@ -79,5 +80,5 @@ void parse_command(int epollfd, im_client_t *client, uint8_t *command,
     }
   }
   if (!hasrun) ac_log(AC_LOG_ERROR, "not recognized command");
-  printf("aft parse_command\n");
+  // printf("aft parse_command\n");
 }

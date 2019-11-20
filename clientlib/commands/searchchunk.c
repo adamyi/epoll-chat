@@ -32,7 +32,7 @@ struct IMRequest *cmd_searchchunk_impl(int epollfd, im_client_t *client,
   struct SearchFileRequest *mreq = malloc(sizeof(struct SearchFileRequest));
   mreq->filename.len = asprintf(&(mreq->filename.value), "%s", filename);
   mreq->chunks.len = 0;
-  printf("chunkseq: %s\n", chunkseq);
+  // printf("chunkseq: %s\n", chunkseq);
   size_t nchunks = pack_repeated_uint32_from_str(chunkseq, &(mreq->chunks));
   if (nchunks == 0) {
     printf(

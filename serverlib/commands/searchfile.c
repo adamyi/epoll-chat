@@ -68,18 +68,16 @@ struct IMResponse *cmd_searchfile_impl(UserDb *db, int epollfd,
       int chfcTarget = 1;
       char *chfcDescription = "any";
       for (uint32_t **curr = chunks; *curr != NULL; curr++) {
-        if (**curr < f->chunks) {
-          wantedchunkmask[**curr] = true;
-          chfcTarget = 2;
-          chfcDescription = "your requested";
-        }
+        chfcTarget = 2;
+        chfcDescription = "your requested";
+        if (**curr < f->chunks) wantedchunkmask[**curr] = true;
       }
       free_parsed_packed_uint32(chunks);
 
       linked_user_t *userlist =
           usersWithChunks(db, f, wantedchunkmask, haschunkmask, chfcTarget);
       char *userlist_str;
-      userLinkedListToString(userlist, &userlist_str);
+      userLinkedListToString(userlist, &userlist_str, "\n");
       freeUserLinkedList(userlist, false);
 
       uint32_t haschunks = 0;
@@ -97,14 +95,17 @@ struct IMResponse *cmd_searchfile_impl(UserDb *db, int epollfd,
         irsp->msg.len = asprintf(
             &(irsp->msg.value),
             "%s is registered on server with %u chunks. All chunks are "
-            "currently available. Below are users with %s chunks: %s",
-            req->filename.value, f->chunks, chfcDescription, userlist_str);
+            "currently available. Below are users with %s chunks:\n%s\n"
+            "After downloading all chunks, cd into your clientdata directory "
+            "and run `cat %s/{0..%u} > %s.merged`",
+            req->filename.value, f->chunks, chfcDescription, userlist_str,
+            req->filename.value, f->chunks - 1, req->filename.value);
       else
         irsp->msg.len =
             asprintf(&(irsp->msg.value),
                      "%s is registered on server with %u chunks. Only %u "
                      "chunks are available (registered by currently online "
-                     "clients). Below are users with %s chunks: %s",
+                     "clients). Below are users with %s chunks:\n%s",
                      req->filename.value, f->chunks, haschunks, chfcDescription,
                      userlist_str);
       free(userlist_str);

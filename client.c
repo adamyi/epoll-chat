@@ -76,8 +76,8 @@ static void epoll_do_send_buffer() {
   event.data.fd = clients[0]->fd;
   event.events = EPOLLIN | EPOLLOUT;
   if (epoll_ctl(epollfd, EPOLL_CTL_MOD, clients[0]->fd, &event) < 0) {
-    fprintf(stderr, "Couldn't listen on output events for socket: %s\n",
-            strerror(errno));
+    ac_log(AC_LOG_ERROR, "Couldn't listen on output events for socket: %s",
+           strerror(errno));
   }
 }
 
@@ -131,7 +131,7 @@ void writeFile(struct ChunkDataResponse *cdr) {
   asprintf(&filepath, "%s/%s/%u", datapath, cdr->filename.value, cdr->chunk);
   FILE *fp = fopen(filepath, "wb");
   if (fp == NULL) {
-    printf("Error: couldn't open %s for writing\n", filepath);
+    ac_log(AC_LOG_ERROR, "Error: couldn't open %s for writing", filepath);
   } else {
     fwrite(cdr->data.value, 1, cdr->data.len, fp);
     fclose(fp);
@@ -166,13 +166,13 @@ size_t parse_response(UserDb *db, int lepollfd, im_client_t *client,
   ac_protobuf_message_t *msg =
       ac_decode_protobuf_msg_with_n_fields(cmd, len, 3, &ret);
   if (msg == NULL) {
-    ac_log(AC_LOG_ERROR, "protobuf decode failure: invalid protobuf");
+    ac_log(AC_LOG_INFO, "protobuf decode failure: invalid protobuf");
     return 0;
   }
   struct IMResponse *imrsp = parseIMResponseFromProtobufMsg(msg);
   lastresponse = imrsp->success;
 
-  ac_protobuf_print_msg(msg);
+  // ac_protobuf_print_msg(msg);
   size_t read = 0;
   switch (imrsp->type) {
     case 1:;
@@ -214,7 +214,7 @@ size_t parse_response(UserDb *db, int lepollfd, im_client_t *client,
       clients[client_idx] = im_connection_accept(lepollfd, sock, client_addr);
       printf("Start private messaging with %s\n", gr->username.value);
       user_t *nu = findOrAddUser(p2pdb, (char *)gr->username.value);
-      printf("user %p\n", nu);
+      // printf("user %p\n", nu);
       nu->client = clients[client_idx];
       clients[client_idx]->user = nu;
       clients[client_idx]->close_prehook = pm_close_connection;
@@ -314,7 +314,7 @@ void *network_thread(void *arg) {
         int newsockfd =
             accept(masterfd, (struct sockaddr *)&client_addr, &client_addr_len);
         if (newsockfd < 0) {
-          fprintf(stderr, "couldn't accept connection\n");
+          ac_log(AC_LOG_ERROR, "couldn't accept connection");
           continue;
         }
         make_socket_nonblocking(newsockfd);
@@ -332,14 +332,14 @@ void *network_thread(void *arg) {
                    events[i].data.fd);
             break;
           }
-          printf("received command\n");
+          ac_log(AC_LOG_DEBUG, "received command");
           im_receive_command(epollfd, NULL, clients[j], events + i,
                              parse_response);
           pthread_mutex_unlock(&loginlock);
           break;
         }
         if (events[i].events & EPOLLOUT) {
-          printf("epollout\n");
+          ac_log(AC_LOG_DEBUG, "epollout");
           pthread_mutex_lock(&clientnumlock);
           int j = pick_client(clients, events[i].data.fd, &nclients, false);
           pthread_mutex_unlock(&clientnumlock);

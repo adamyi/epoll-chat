@@ -78,11 +78,11 @@ im_client_t *im_connection_accept(int epollfd, int sockfd,
   event.data.fd = sockfd;
   event.events = EPOLLIN;
   if (epoll_ctl(epollfd, EPOLL_CTL_ADD, sockfd, &event) < 0) {
-    fprintf(stderr, "Couldn't add socket: %s\n", strerror(errno));
+    ac_log(AC_LOG_ERROR, "Couldn't add socket: %s", strerror(errno));
   }
 
   if (pthread_mutex_init(&(client->lock), NULL) != 0) {
-    fprintf(stderr, "pthread_mutex_init failed");
+    ac_log(AC_LOG_ERROR, "pthread_mutex_init failed");
   }
   return client;
 }
@@ -113,8 +113,8 @@ void send_response_to_client(int epollfd, im_client_t *client,
   event.data.fd = client->fd;
   event.events = EPOLLIN | EPOLLOUT;
   if (epoll_ctl(epollfd, EPOLL_CTL_MOD, client->fd, &event) < 0) {
-    fprintf(stderr, "Couldn't listen on output events for socket: %s\n",
-            strerror(errno));
+    ac_log(AC_LOG_ERROR, "Couldn't listen on output events for socket: %s",
+           strerror(errno));
   }
   ac_log(AC_LOG_DEBUG, "listening on EPOLLIN and EPOLLOUT for %d",
          event.data.fd);
@@ -123,12 +123,12 @@ void send_response_to_client(int epollfd, im_client_t *client,
 
 void send_response_to_user(UserDb *db, int epollfd, user_t *user,
                            struct IMResponse *msg) {
-  printf("send response to user\n");
+  ac_log(AC_LOG_DEBUG, "send response to user");
   if (user->client != NULL && isUserLoggedIn(db, user)) {
-    printf("send_response_to_client\n");
+    ac_log(AC_LOG_DEBUG, "send_response_to_client");
     send_response_to_client(epollfd, user->client, msg);
   } else {
-    printf("send_response\n");
+    ac_log(AC_LOG_DEBUG, "send_response");
     send_response(&(user->buffer), msg);
   }
 }
@@ -152,7 +152,7 @@ void im_receive_command(
     int epollfd, UserDb *db, im_client_t *client, struct epoll_event *event,
     size_t (*handler)(UserDb *db, int epollfd, im_client_t *client,
                       uint8_t *cmd, size_t len, struct IMResponse **rsp)) {
-  printf("im_receive_command\n");
+  ac_log(AC_LOG_DEBUG, "im_receive_command");
   reset_buffer_start(&(client->inbuffer));
   if ((client->inbuffer.buffer_end << 1) > client->inbuffer.buffer_capacity) {
     client->inbuffer.buffer_capacity <<= 1;
@@ -185,14 +185,14 @@ void im_receive_command(
 
 void im_send_buffer(int epollfd, UserDb *db, im_client_t *client,
                     im_buffer_t *buffer) {
-  printf("im_send_buffer\n");
+  ac_log(AC_LOG_DEBUG, "im_send_buffer");
   size_t len = buffer->buffer_end - buffer->buffer_start;
   ac_log(AC_LOG_INFO, "to send: %d bytes to %p", len, buffer);
   if (len > 0) {
     int nsent = send(client->fd, buffer->buffer + buffer->buffer_start, len, 0);
     ac_log(AC_LOG_INFO, "sent: %d bytes", nsent);
     if (nsent == -1) {
-      fprintf(stderr, "error sending: %s\n", strerror(errno));
+      ac_log(AC_LOG_ERROR, "error sending: %s", strerror(errno));
       return;
     }
     buffer->buffer_start += nsent;
@@ -203,8 +203,8 @@ void im_send_buffer(int epollfd, UserDb *db, im_client_t *client,
     event.data.fd = client->fd;
     event.events = EPOLLIN;
     if (epoll_ctl(epollfd, EPOLL_CTL_MOD, client->fd, &event) < 0) {
-      fprintf(stderr, "Couldn't listen on input events for socket: %s\n",
-              strerror(errno));
+      ac_log(AC_LOG_ERROR, "Couldn't listen on input events for socket: %s",
+             strerror(errno));
     }
   }
   if ((buffer->buffer_start << 1) >= buffer->buffer_capacity)
@@ -255,7 +255,8 @@ size_t pack_repeated_uint32_from_str(char *str, ac_protobuf_string_t *bytes) {
     e = NULL;
     vals[ret] = strtol(s, &e, 10);
     if (e == s) {
-      printf("Error: invalid character in chunk sequence in command\n");
+      ac_log(AC_LOG_ERROR,
+             "Error: invalid character in chunk sequence in command");
       free(vals);
       return 0;
     }

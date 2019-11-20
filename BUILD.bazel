@@ -1,6 +1,7 @@
 cc_binary(
   name = "server",
   srcs = ["server.c"],
+  linkopts = ["-lpthread"],
   deps = [
     "//achelper",
     "//serverlib",
@@ -11,6 +12,7 @@ cc_binary(
 cc_binary(
   name = "client",
   srcs = ["client.c"],
+  linkopts = ["-lpthread"],
   deps = [
     "//achelper",
     "//clientlib",
