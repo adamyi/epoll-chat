@@ -87,7 +87,8 @@ void regFileChunk(im_client_t *client, trie_file_t *file, uint32_t **chunks) {
   uint32_t count = 0;
   for (; *(chunks + count) != NULL; count++)
     ;
-  client->chunkids = realloc(client->chunkids, client->nchunks + count);
+  client->chunkids =
+      realloc(client->chunkids, sizeof(uint32_t) * (client->nchunks + count));
   for (int i = client->nchunks, j = 0; j < count; i++, j++) {
     client->chunkids[i] = file->chunk_sid + **(chunks + j);
   }

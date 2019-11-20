@@ -71,6 +71,16 @@ void pm_close_connection(im_client_t *client) {
            client->user->username);
 }
 
+static void epoll_do_send_buffer() {
+  struct epoll_event event;
+  event.data.fd = clients[0]->fd;
+  event.events = EPOLLIN | EPOLLOUT;
+  if (epoll_ctl(epollfd, EPOLL_CTL_MOD, clients[0]->fd, &event) < 0) {
+    fprintf(stderr, "Couldn't listen on output events for socket: %s\n",
+            strerror(errno));
+  }
+}
+
 struct IMResponse *getChunkDataResponse(struct ChunkDataRequest *req) {
   char *filepath;
   asprintf(&filepath, "%s/%s/%u", datapath, req->filename.value, req->chunk);
@@ -128,7 +138,7 @@ void writeFile(struct ChunkDataResponse *cdr) {
     printf("Stored file at %s\n", filepath);
 
     struct IMRequest *req = malloc(sizeof(struct IMRequest));
-    req->type = 8;
+    req->type = 9;
     struct RegisterChunkRequest *lreq =
         malloc(sizeof(struct RegisterChunkRequest));
     lreq->filename.len =
@@ -144,6 +154,8 @@ void writeFile(struct ChunkDataResponse *cdr) {
     send_request(&(clients[0]->outbuffer), req);
     pthread_mutex_unlock(&(clients[0]->lock));
     freeIMRequest(req);
+
+    epoll_do_send_buffer();
   }
   free(filepath);
 }
@@ -258,13 +270,7 @@ size_t parse_response(UserDb *db, int lepollfd, im_client_t *client,
 static void got_command(char *buf, size_t l) {
   parse_command(epollfd, clients[0], (uint8_t *)buf, l);
   ac_log(AC_LOG_DEBUG, "after parse");
-  struct epoll_event event;
-  event.data.fd = clients[0]->fd;
-  event.events = EPOLLIN | EPOLLOUT;
-  if (epoll_ctl(epollfd, EPOLL_CTL_MOD, clients[0]->fd, &event) < 0) {
-    fprintf(stderr, "Couldn't listen on output events for socket: %s\n",
-            strerror(errno));
-  }
+  epoll_do_send_buffer();
 }
 
 void *input_thread(void *arg) {

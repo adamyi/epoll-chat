@@ -49,6 +49,8 @@ size_t parse_command(UserDb *db, int epollfd, im_client_t *client,
       size_t tmp = 0;
       void *request =
           (*cmd)->parser(imreq->value.value, imreq->value.len, &tmp);
+      ac_log(AC_LOG_DEBUG,
+             "finished parsing request... running implementation");
       *rsp = (*cmd)->run(db, epollfd, client, request);
       (*cmd)->freeer(request);
       if (isUserLoggedIn(db, client->user))
