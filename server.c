@@ -21,6 +21,7 @@
 #include "lib/client.h"
 // do not sort
 #include "lib/auth.h"
+#include "lib/file.h"
 #include "lib/socket.h"
 
 #include "serverlib/command.h"
@@ -38,6 +39,7 @@ int epollfd;
 int masterfd;
 
 UserDb *db;
+trie_file_t *fileDb;
 
 void *time_thread(void *arg) {
   struct IMResponse *rsp = encodeExitTextToIMResponse(
@@ -64,6 +66,7 @@ void *network_thread(void *arg) {
   while (true) {
     int N = epoll_wait(epollfd, events, MAX_EVENTS, -1);
     ac_log(AC_LOG_DEBUG, "epoll_wait returned %d", N);
+    if (N == -1) break;
     for (int i = 0; i < N; i++) {
       if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
         fprintf(stderr, "disconnect\n");
@@ -143,6 +146,8 @@ int main(int argc, char *argv[]) {
   }
   db = buildUserDb(udbfp, block_duration, timeout);
   fclose(udbfp);
+
+  fileDb = newTrieFileNode();
 
   masterfd = listen_socket(port);
 

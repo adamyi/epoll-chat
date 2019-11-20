@@ -69,6 +69,8 @@ im_client_t *im_connection_accept(int epollfd, int sockfd,
   client->close_callback = NULL;
   client->close_prehook = NULL;
   client->addr = clientaddr;
+  client->nchunks = 0;
+  client->chunkids = NULL;
   init_buffer(&(client->outbuffer), OUT_BUFFER_DEFAULT_SIZE);
   init_buffer(&(client->inbuffer), MSG_LIMIT);
 
@@ -150,10 +152,18 @@ void im_receive_command(
     int epollfd, UserDb *db, im_client_t *client, struct epoll_event *event,
     size_t (*handler)(UserDb *db, int epollfd, im_client_t *client,
                       uint8_t *cmd, size_t len, struct IMResponse **rsp)) {
+  printf("im_receive_command\n");
   reset_buffer_start(&(client->inbuffer));
+  if ((client->inbuffer.buffer_end << 1) > client->inbuffer.buffer_capacity) {
+    client->inbuffer.buffer_capacity <<= 1;
+    client->inbuffer.buffer =
+        realloc(client->inbuffer.buffer, client->inbuffer.buffer_capacity);
+    ac_log(AC_LOG_DEBUG, "resizing receiving buffer to %u",
+           client->inbuffer.buffer_capacity);
+  }
   size_t nbytes = recv(
-      event->data.fd, client->inbuffer.buffer + client->inbuffer.buffer_start,
-      client->inbuffer.buffer_capacity - client->inbuffer.buffer_start, 0);
+      event->data.fd, client->inbuffer.buffer + client->inbuffer.buffer_end,
+      client->inbuffer.buffer_capacity - client->inbuffer.buffer_end, 0);
   if (nbytes == 0) {  // disconnect
     close_socket(epollfd, db, client);
     return;
@@ -217,4 +227,58 @@ int pick_client(struct im_client *clients[], int sockfd, int *nclients,
   }
   if (createNew) return (*nclients)++;
   return -1;
+}
+
+// TODO: implement generalized [packed repeated value] (en/de)coding in
+// ac_protobuf
+uint32_t **parse_packed_uint32(ac_protobuf_string_t *bytes, size_t *n) {
+  size_t len = bytes->len >> 2;
+  uint32_t **ret = malloc((len + 1) * sizeof(void *));
+  uint32_t **curr = ret;
+  uint32_t *decodeptr = (uint32_t *)bytes->value;
+  for (int i = 0; i < len; ++i, ++curr, ++decodeptr) {
+    *curr = malloc(4);
+    **curr = *decodeptr;
+  }
+  *curr = NULL;
+  if (n != NULL) *n = len;
+  return ret;
+}
+
+size_t pack_repeated_uint32_from_str(char *str, ac_protobuf_string_t *bytes) {
+  bytes->len = 0;
+  uint32_t *vals = malloc(sizeof(uint32_t) * (1 + strlen(str) / 2));
+  size_t ret = 0;
+  char *s = str;
+  char *e;
+  while (true) {
+    e = NULL;
+    vals[ret] = strtol(s, &e, 10);
+    if (e == s) {
+      printf("Error: invalid character in chunk sequence in command\n");
+      free(vals);
+      return 0;
+    }
+    ret++;
+    if (*e == '\0') {
+      break;
+    }
+    s = e;
+  }
+  bytes->len = ret << 2;
+  bytes->value = malloc(bytes->len);
+  uint32_t *rvals = (uint32_t *)bytes->value;
+  for (size_t i = 0; i < ret; i++) {
+    rvals[i] = vals[i];
+  }
+  free(vals);
+  return ret;
+}
+
+void free_parsed_packed_uint32(uint32_t **values) {
+  uint32_t **curr = values;
+  while (*curr != NULL) {
+    free(*curr);
+    curr++;
+  }
 }

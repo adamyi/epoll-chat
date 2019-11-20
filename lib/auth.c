@@ -282,6 +282,7 @@ void freeUserLinkedList(linked_user_t *first, bool freeUser) {
         free(curr->user->password);
         free(curr->user);
       }
+      free(curr);
       curr = next;
     }
   }

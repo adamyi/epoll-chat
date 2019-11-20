@@ -30,3 +30,18 @@ message GetIPResponse {
 message PrivateRegistrationResponse {
   string username = 1;
 }
+
+// type 5
+
+message ChunkDataRequest {
+  string filename = 1;
+  uint32 chunk = 2;
+}
+
+// type 6
+
+message ChunkDataResponse {
+  string filename = 1;
+  uint32 chunk = 2;
+  bytes data = 3;
+}

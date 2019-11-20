@@ -19,6 +19,8 @@ typedef struct im_client {
   void (*close_callback)(struct im_client *client);
   void (*close_prehook)(struct im_client *client);
   struct sockaddr_in addr;
+  uint32_t nchunks;
+  uint32_t *chunkids;
 } im_client_t;
 
 #endif

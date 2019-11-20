@@ -44,3 +44,23 @@ message LogOutRequest {
 message GetIPRequest {
   string username = 1;
 }
+
+// type 8
+message RegisterFileRequest {
+  string filename = 1;
+  uint32 chunks = 2;
+}
+
+// type 9
+// TODO: implement generalized [packed repeated value] (en/de)coding in ac_protobuf
+message RegisterChunkRequest {
+  string filename = 1;
+  bytes chunks = 2;
+}
+
+// type 10
+// TODO: implement generalized [packed repeated value] (en/de)coding in ac_protobuf
+message SearchFileRequest {
+  string filename = 1;
+  bytes chunks = 2;
+}

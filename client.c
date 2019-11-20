@@ -12,6 +12,7 @@
 #include <string.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
@@ -22,14 +23,19 @@
 #include "lib/client.h"
 // do not sort
 #include "lib/auth.h"
+#include "lib/response.h"
 #include "lib/socket.h"
 
 #include "clientlib/command.h"
 
+#include "proto/ChunkDataRequest.pb.h"
+#include "proto/ChunkDataResponse.pb.h"
 #include "proto/ExitResponse.pb.h"
 #include "proto/GetIPResponse.pb.h"
+#include "proto/IMRequest.pb.h"
 #include "proto/IMResponse.pb.h"
 #include "proto/PrivateRegistrationResponse.pb.h"
+#include "proto/RegisterChunkRequest.pb.h"
 #include "proto/TextResponse.pb.h"
 
 #define MAX_EVENTS 16
@@ -53,6 +59,8 @@ pthread_mutex_t clientnumlock;
 UserDb *p2pdb;
 char *loggedInUserName;
 
+char *datapath;
+
 void server_close_connection(im_client_t *client) {
   ac_log(AC_LOG_FATAL, "Server has closed connection");
 }
@@ -61,6 +69,83 @@ void pm_close_connection(im_client_t *client) {
   if (client->user != NULL)
     printf("%s has ended private messaging session with you.\n",
            client->user->username);
+}
+
+struct IMResponse *getChunkDataResponse(struct ChunkDataRequest *req) {
+  char *filepath;
+  asprintf(&filepath, "%s/%s/%u", datapath, req->filename.value, req->chunk);
+  struct stat fs;
+  if (stat(filepath, &fs) != 0) {
+    free(filepath);
+    asprintf(&filepath,
+             "%s (private): chunk %u for file %s does not exist on my end",
+             loggedInUserName, req->chunk, req->filename.value);
+    struct IMResponse *rsp = encodeTextToIMResponse(filepath, false);
+    free(filepath);
+    return rsp;
+  }
+  long bytes = (long)fs.st_size;
+  FILE *fp = fopen(filepath, "rb");
+  if (fp == NULL) {
+    free(filepath);
+    asprintf(&filepath,
+             "%s (private): chunk %u for file %s does not exist on my end",
+             loggedInUserName, req->chunk, req->filename.value);
+    struct IMResponse *rsp = encodeTextToIMResponse(filepath, false);
+    free(filepath);
+    return rsp;
+  }
+  free(filepath);
+
+  struct ChunkDataResponse *cdr = malloc(sizeof(struct ChunkDataResponse));
+  cdr->filename.len =
+      asprintf((char **)&(cdr->filename.value), "%s", req->filename.value);
+  cdr->chunk = req->chunk;
+  cdr->data.value = malloc(bytes);
+  cdr->data.len = fread(cdr->data.value, 1, bytes, fp);
+  fclose(fp);
+
+  struct IMResponse *rsp = malloc(sizeof(struct IMResponse));
+  rsp->type = 6;
+  rsp->success = true;
+  rsp->value.value = encodeChunkDataResponseToBytes(cdr, &(rsp->value.len));
+  freeChunkDataResponse(cdr);
+  return rsp;
+}
+
+void writeFile(struct ChunkDataResponse *cdr) {
+  char *filepath;
+  asprintf(&filepath, "%s/%s", datapath, cdr->filename.value);
+  mkdir(filepath, 0700);
+  free(filepath);
+  asprintf(&filepath, "%s/%s/%u", datapath, cdr->filename.value, cdr->chunk);
+  FILE *fp = fopen(filepath, "wb");
+  if (fp == NULL) {
+    printf("Error: couldn't open %s for writing\n", filepath);
+  } else {
+    fwrite(cdr->data.value, 1, cdr->data.len, fp);
+    fclose(fp);
+    printf("Stored file at %s\n", filepath);
+
+    struct IMRequest *req = malloc(sizeof(struct IMRequest));
+    req->type = 8;
+    struct RegisterChunkRequest *lreq =
+        malloc(sizeof(struct RegisterChunkRequest));
+    lreq->filename.len =
+        asprintf((char **)&(lreq->filename.value), "%s", cdr->filename.value);
+    lreq->chunks.len = 4;
+    lreq->chunks.value = malloc(4);
+    *(uint32_t *)(lreq->chunks.value) = cdr->chunk;
+    req->value.value =
+        encodeRegisterChunkRequestToBytes(lreq, &(req->value.len));
+    freeRegisterChunkRequest(lreq);
+
+    pthread_mutex_lock(&(clients[0]->lock));
+    send_request(&(clients[0]->outbuffer), req);
+    pthread_mutex_unlock(&(clients[0]->lock));
+    freeIMRequest(req);
+  }
+  free(filepath);
 }
 
 size_t parse_response(UserDb *db, int lepollfd, im_client_t *client,
@@ -149,6 +234,20 @@ size_t parse_response(UserDb *db, int lepollfd, im_client_t *client,
       client->close_prehook = pm_close_connection;
       freePrivateRegistrationResponse(prr);
       break;
+    case 5:;
+      struct ChunkDataRequest *cdreq = parseChunkDataRequestFromBytes(
+          imrsp->value.value, imrsp->value.len, &read);
+      struct IMResponse *cdrsp = getChunkDataResponse(cdreq);
+      freeChunkDataRequest(cdreq);
+      send_response_to_client(lepollfd, client, cdrsp);
+      freeIMResponse(cdrsp);
+      break;
+    case 6:;
+      struct ChunkDataResponse *cdata = parseChunkDataResponseFromBytes(
+          imrsp->value.value, imrsp->value.len, &read);
+      writeFile(cdata);
+      freeChunkDataResponse(cdata);
+      break;
     default:
       ac_log(AC_LOG_ERROR, "unidentified response type %u", imrsp->type);
   }
@@ -193,10 +292,16 @@ void *network_thread(void *arg) {
   while (true) {
     int N = epoll_wait(epollfd, events, MAX_EVENTS, -1);
     ac_log(AC_LOG_INFO, "epoll: %d", N);
+    if (N == -1) break;
     for (int i = 0; i < N; i++) {
       if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
-        fprintf(stderr, "disconnect\n");
-        // TODO: disconnect
+        int j = pick_client(clients, events[i].data.fd, &nclients, false);
+        if (j < 0) {
+          ac_log(AC_LOG_ERROR, "couldn't find im_client for fd %d",
+                 events[i].data.fd);
+          break;
+        }
+        close_socket(epollfd, NULL, clients[j]);
       } else if (events[i].data.fd == masterfd) {
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
@@ -308,6 +413,15 @@ int main(int argc, char *argv[]) {
   clients[nclients] = im_connection_accept(epollfd, sock, server_address);
   clients[nclients]->close_callback = server_close_connection;
   nclients++;
+
+  asprintf(&datapath, "clientdata.%ld.%d", time(NULL), getpid());
+  if (mkdir(datapath, 0700) < 0) {
+    ac_log(AC_LOG_FATAL,
+           "couldn't create directory %s to store p2p files... Check file "
+           "permissions",
+           datapath);
+  }
+  printf("Using storage path for p2p files: %s\n", datapath);
 
   pthread_t nt, it;
   if (pthread_mutex_init(&loginlock, NULL) != 0) {

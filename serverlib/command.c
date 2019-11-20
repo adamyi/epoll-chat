@@ -17,12 +17,16 @@
 #include "serverlib/commands/login.h"
 #include "serverlib/commands/logout.h"
 #include "serverlib/commands/message.h"
+#include "serverlib/commands/regchunk.h"
+#include "serverlib/commands/regfile.h"
+#include "serverlib/commands/searchfile.h"
 #include "serverlib/commands/unblock.h"
 #include "serverlib/commands/whoelse.h"
 
 const im_command_t *enabled_commands[] = {
-    &cmd_login,  &cmd_message, &cmd_block, &cmd_unblock,
-    &cmd_logout, &cmd_whoelse, &cmd_getip, NULL};
+    &cmd_login,    &cmd_message,    &cmd_block, &cmd_unblock,
+    &cmd_logout,   &cmd_whoelse,    &cmd_getip, &cmd_regfile,
+    &cmd_regchunk, &cmd_searchfile, NULL};
 
 size_t parse_command(UserDb *db, int epollfd, im_client_t *client,
                      uint8_t *cmdstr, size_t len, struct IMResponse **rsp) {

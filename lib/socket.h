@@ -47,4 +47,10 @@ void close_socket(int epollfd, UserDb *db, im_client_t *client);
 int pick_client(struct im_client *clients[], int sockfd, int *nclients,
                 bool createNew);
 
+uint32_t **parse_packed_uint32(ac_protobuf_string_t *bytes, size_t *n);
+
+size_t pack_repeated_uint32_from_str(char *str, ac_protobuf_string_t *bytes);
+
+void free_parsed_packed_uint32(uint32_t **values);
+
 #endif
