@@ -28,8 +28,9 @@ struct IMResponse *cmd_login_impl(UserDb *db, int epollfd, im_client_t *client,
           asprintf(&(irsp->msg.value), "Welcome %s!", user->username);
       return encodeTextResponseToIMResponseAndFree(irsp, true);
     case 1:  // user not found
+      return encodeExitTextToIMResponse("user does not exist", false);
     case 3:  // wrong password
-      return encodeTextToIMResponse("username or password is wrong", false);
+      return encodeTextToIMResponse("password is wrong", false);
     case 2:  // user blocked
       return encodeExitTextToIMResponse("you are blocked! try again later",
                                         false);

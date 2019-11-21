@@ -372,6 +372,7 @@ int main(int argc, char *argv[]) {
   int server_port = atoi(argv[2]);
 
   p2pdb = newUserDb(0, 0);
+  loggedInUserName = NULL;
 
   struct sockaddr_in server_address;
   memset(&server_address, 0, sizeof(server_address));

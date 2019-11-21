@@ -21,9 +21,13 @@ struct IMRequest *cmd_login_impl(int epollfd, im_client_t *client, char *req) {
   char *password = malloc(LOGIN_SIZE_LIMIT);
   lreq->username.value = (uint8_t *)username;
   lreq->password.value = (uint8_t *)password;
-  printf("Username: ");
-  fgets(username, LOGIN_SIZE_LIMIT, stdin);
-  username[strlen(username) - 1] = '\0';
+  if (loggedInUserName == NULL) {
+    printf("Username: ");
+    fgets(username, LOGIN_SIZE_LIMIT, stdin);
+    username[strlen(username) - 1] = '\0';
+  } else {
+    strcpy(username, loggedInUserName);
+  }
   printf("Password: ");
   fgets(password, LOGIN_SIZE_LIMIT, stdin);
   password[strlen(password) - 1] = '\0';
